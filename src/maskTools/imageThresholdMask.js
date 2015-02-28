@@ -28,34 +28,48 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
         var width = image.width;
 
         var numPixels = height * width;
-        //var storedPixelData = new Uint8Array(numPixels * 4);
+        var storedPixelData = new Uint8ClampedArray(numPixels * 4);
         var storedPixelDataIndex = 0;
 
         // we have tool data for this element - iterate over each one and draw it
-        var context = eventData.canvasContext.canvas.getContext("2d");
-        cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, context);
+        //var context = eventData.canvasContext.canvas.getContext("2d");
 
-        var imageData = context.createImageData(width, height);
-        var storedPixelData = imageData.data;
+        // create new context and canvas
+        var canvas = document.createElement('canvas');
+        canvas.width = eventData.canvasContext.canvas.width;
+        canvas.height = eventData.canvasContext.canvas.height;
+        var new_context = canvas.getContext("2d");
+        var imageData = new_context.createImageData(width, height);
+
+        var context = eventData.canvasContext.canvas.getContext("2d");
+        cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, new_context);
+        cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, context);
 
         for(var i=0; i < numPixels; i++) {
             if (pixelData[i] >= minThresh  && pixelData[i] <= maxThresh) {
-                imageData.data[storedPixelDataIndex++] = 0;
-                imageData.data[storedPixelDataIndex++] = 194;
-                imageData.data[storedPixelDataIndex++] = 237;
-                imageData.data[storedPixelDataIndex++] = 255;
+                storedPixelData[storedPixelDataIndex++] = 0;
+                storedPixelData[storedPixelDataIndex++] = 194;
+                storedPixelData[storedPixelDataIndex++] = 237;
+                storedPixelData[storedPixelDataIndex++] = 255;
             } else {
-                imageData.data[storedPixelDataIndex++] = 0;
-                imageData.data[storedPixelDataIndex++] = 0;
-                imageData.data[storedPixelDataIndex++] = 0;
-                imageData.data[storedPixelDataIndex++] = 0;
+                storedPixelData[storedPixelDataIndex++] = 0;
+                storedPixelData[storedPixelDataIndex++] = 0;
+                storedPixelData[storedPixelDataIndex++] = 0;
+                storedPixelData[storedPixelDataIndex++] = 0;
             }
         }
 
-        // draw the overlay
-        //context.save();
-        context.putImageData(imageData, 0, 0);
-        //context.restore();
+        imageData.data.set(storedPixelData);
+        new_context.putImageData(imageData, 0, 0);
+
+        var dataUri = canvas.toDataURL(); // produces a PNG file
+
+        var img = new Image();
+        img.src = dataUri; //"http://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"; //transparent png
+        //img.src = "http://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"; //transparent png
+        img.onload=function(){
+            context.drawImage(img,0,0);
+        };
     }
 
     function enable(element, min, max)

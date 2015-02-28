@@ -67,14 +67,19 @@ is used by our example image loader-->
 
     // image enable the dicomImage element
     cornerstone.enable(element);
+    cornerstoneTools.mouseInput.enable(element);
+    cornerstoneTools.mouseWheelInput.enable(element);
 
     cornerstone.loadImage(imageId).then(function(image) {
         cornerstone.displayImage(element, image);
+        cornerstoneTools.wwwc.activate(element, 1);
+        cornerstoneTools.pan.activate(element, 2);
+        cornerstoneTools.zoomWheel.activate(element);
 
         activate("#enable");
         
         // Enable all tools we want to use with this element
-        var min = 50;
+        var min = 150;
         var max = 200;
         cornerstoneTools.imageThresholdMask.enable(element, min, max);
         
