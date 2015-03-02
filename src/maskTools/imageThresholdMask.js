@@ -13,8 +13,14 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
 
     function onImageRendered(e, eventData) {
 
-        // Get relevant toolData
-        var toolData = cornerstoneTools.getToolState(e.currentTarget, toolType);
+        // Stupidly useing frame of reference state manager for now, since stack state management seems broken
+        
+        // Get the frame of reference
+        var frameOfReferenceUID = cornerstoneTools.metaData.get('frameOfReferenceUID', eventData.image.imageId);
+        
+        // Get the tool data
+        var toolData = cornerstoneTools.globalFrameOfReferenceSpecificToolStateManager.get(frameOfReferenceUID, toolType);
+        //var toolData = cornerstoneTools.getToolState(e.currentTarget, toolType);
 
         // if we have no toolData for this element, return immediately as there is nothing to do
         if(toolData === undefined) {
@@ -100,16 +106,23 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
             overlay[imageId] = img;
         }
     }
-    
+
     function enable(element, data)
     {
-        if (data === undefined) {
-            data = {"minThresh": 0,
-                    "maxThresh": 100,
-                    "color": "red",
-                    "opacity": 1.0};
+        if (data !== undefined) {
+            //data = {"minThresh": 0,
+            //        "maxThresh": 100,
+            //        "color": "red",
+            //        "opacity": 1.0};
+
+            // Get the current frameOfReferenceUID 
+            var enabledElement = cornerstone.getEnabledElement(element);
+            var frameOfReferenceUID = cornerstoneTools.metaData.get('frameOfReferenceUID', enabledElement.image.imageId);
+
+            // Save this data using the frame of reference state manager
+            cornerstoneTools.globalFrameOfReferenceSpecificToolStateManager.add(frameOfReferenceUID, toolType, data);
         }
-        cornerstoneTools.addToolState(element, toolType, data);
+
         $(element).on("CornerstoneImageRendered", onImageRendered);
         cornerstone.updateImage(element);
     }

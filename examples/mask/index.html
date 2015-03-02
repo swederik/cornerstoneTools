@@ -82,7 +82,7 @@ is used by our example image loader-->
         cornerstone.displayImage(element, image);
 
         // set the stack as tool state
-        cornerstoneTools.addStackStateManager(element, ['stack', 'imageThresholdMask']);
+        cornerstoneTools.addStackStateManager(element);
         cornerstoneTools.addToolState(element, 'stack', stack);
 
         cornerstoneTools.wwwc.activate(element, 1);
@@ -123,6 +123,7 @@ is used by our example image loader-->
             cornerstoneTools.imageThresholdMask.enable(element);
             return false;
         });
+
     });
 
 </script>
