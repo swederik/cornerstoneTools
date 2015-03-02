@@ -34,7 +34,7 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
         var context = eventData.canvasContext.canvas.getContext("2d");
         cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, context);
 
-        if (overlay[imageId] !== undefined) {
+        if (overlay[imageId] !== undefined && !toolData.data[0].invalidated) {
             // If the data has already been cached, draw it
             context.drawImage(overlay[imageId], 0, 0);
         } else {
@@ -52,8 +52,8 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
 
             // Create a new overlayCanvas, but don't attach it to the DOM
             var overlayCanvas = document.createElement('canvas');
-            overlayCanvas.width = eventData.canvasContext.canvas.width;
-            overlayCanvas.height = eventData.canvasContext.canvas.height;
+            overlayCanvas.width = width;
+            overlayCanvas.height = height;
             
             // Fill new overlayCanvas's context with the specified color
             var overlayContext = overlayCanvas.getContext("2d");
@@ -113,7 +113,8 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
             //data = {"minThresh": 0,
             //        "maxThresh": 100,
             //        "color": "red",
-            //        "opacity": 1.0};
+            //        "opacity": 1.0,
+            //        "invalidated": false};
 
             // Get the current frameOfReferenceUID 
             var enabledElement = cornerstone.getEnabledElement(element);
