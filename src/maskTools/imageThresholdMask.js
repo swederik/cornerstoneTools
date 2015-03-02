@@ -7,7 +7,7 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
     }
 
     var toolType = "imageThresholdMask";
-    var overlay;
+    var overlay = {};
 
     ///////// BEGIN IMAGE RENDERING ///////
 
@@ -21,12 +21,16 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
             return;
         }
 
+        var element = cornerstone.getEnabledElement(eventData.element);
+        var image = element.image;
+        var imageId = element.image.imageId;
+
         var context = eventData.canvasContext.canvas.getContext("2d");
         cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, context);
 
-        if (overlay !== undefined) {
+        if (overlay[imageId] !== undefined) {
             // If the data has already been cached, draw it
-            context.drawImage(overlay.img, 0, 0);
+            context.drawImage(overlay[imageId], 0, 0);
         } else {
             // Get minimum and maximum thresholds
             var minThresh = toolData.data[0].minThresh;
@@ -34,9 +38,7 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
             var color = toolData.data[0].color;
             var opacity = Math.ceil(toolData.data[0].opacity * 255);
 
-            // Get the element, image, pixel data, and dimensions
-            var element = cornerstone.getEnabledElement(eventData.element);
-            var image = element.image;
+            // Get the pixel data, and dimensions
             var pixelData = image.getPixelData();
             var height = image.height;
             var width = image.width;
@@ -95,10 +97,10 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
                 context.drawImage(img, 0, 0);
             };
 
-            overlay = {"img": img};
+            overlay[imageId] = img;
         }
     }
-
+    
     function enable(element, data)
     {
         if (data === undefined) {
