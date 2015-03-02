@@ -63,18 +63,34 @@ is used by our example image loader-->
 <script>
     var element = $('#dicomImage').get(0);
 
-    var imageId = 'example://1';
+    var imageIds = [
+        'example://1',
+        'example://2'
+    ];
+
+    var stack = {
+        currentImageIdIndex : 0,
+        imageIds: imageIds
+    };
 
     // image enable the dicomImage element
     cornerstone.enable(element);
     cornerstoneTools.mouseInput.enable(element);
     cornerstoneTools.mouseWheelInput.enable(element);
 
-    cornerstone.loadImage(imageId).then(function(image) {
+    cornerstone.loadImage(imageIds[0]).then(function(image) {
         cornerstone.displayImage(element, image);
+
+        // set the stack as tool state
+        cornerstoneTools.addStackStateManager(element, ['stack', 'imageThresholdMask']);
+        cornerstoneTools.addToolState(element, 'stack', stack);
+
         cornerstoneTools.wwwc.activate(element, 1);
         cornerstoneTools.pan.activate(element, 2);
-        cornerstoneTools.zoomWheel.activate(element);
+        cornerstoneTools.zoom.activate(element, 4);
+
+        cornerstoneTools.stackScrollWheel.activate(element);
+
 
         activate("#enable");
         
