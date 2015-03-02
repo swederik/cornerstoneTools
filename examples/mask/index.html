@@ -79,9 +79,15 @@ is used by our example image loader-->
         activate("#enable");
         
         // Enable all tools we want to use with this element
-        var min = 150;
+        var min = 100;
         var max = 200;
-        cornerstoneTools.imageThresholdMask.enable(element, min, max);
+        var color = "rgb(28,191,255)";
+        var opacity = 0.7;
+        var data = {"minThresh": min,
+                    "maxThresh": max,
+                    "color": color,
+                    "opacity": opacity}
+        cornerstoneTools.imageThresholdMask.enable(element, data);
         
 
         function activate(id)

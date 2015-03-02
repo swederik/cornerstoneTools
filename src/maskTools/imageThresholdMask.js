@@ -7,78 +7,107 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneTools) {
     }
 
     var toolType = "imageThresholdMask";
+    var overlay;
 
     ///////// BEGIN IMAGE RENDERING ///////
 
     function onImageRendered(e, eventData) {
 
+        // Get relevant toolData
         var toolData = cornerstoneTools.getToolState(e.currentTarget, toolType);
+
+        // if we have no toolData for this element, return immediately as there is nothing to do
         if(toolData === undefined) {
             return;
         }
 
-        var minThresh = toolData.data[0].minThresh;
-        var maxThresh = toolData.data[0].maxThresh;
-
-        // if we have no toolData for this element, return immediately as there is nothing to do
-        var element = cornerstone.getEnabledElement(eventData.element);
-        var image = element.image;
-        var pixelData = image.getPixelData();
-        var height = image.height;
-        var width = image.width;
-
-        var numPixels = height * width;
-        var storedPixelData = new Uint8ClampedArray(numPixels * 4);
-        var storedPixelDataIndex = 0;
-
-        // we have tool data for this element - iterate over each one and draw it
-        //var context = eventData.canvasContext.canvas.getContext("2d");
-
-        // create new context and canvas
-        var canvas = document.createElement('canvas');
-        canvas.width = eventData.canvasContext.canvas.width;
-        canvas.height = eventData.canvasContext.canvas.height;
-        var new_context = canvas.getContext("2d");
-        var imageData = new_context.createImageData(width, height);
-
         var context = eventData.canvasContext.canvas.getContext("2d");
-        cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, new_context);
         cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, context);
 
-        for(var i=0; i < numPixels; i++) {
-            if (pixelData[i] >= minThresh  && pixelData[i] <= maxThresh) {
-                storedPixelData[storedPixelDataIndex++] = 0;
-                storedPixelData[storedPixelDataIndex++] = 194;
-                storedPixelData[storedPixelDataIndex++] = 237;
-                storedPixelData[storedPixelDataIndex++] = 255;
-            } else {
-                storedPixelData[storedPixelDataIndex++] = 0;
-                storedPixelData[storedPixelDataIndex++] = 0;
-                storedPixelData[storedPixelDataIndex++] = 0;
-                storedPixelData[storedPixelDataIndex++] = 0;
+        if (overlay !== undefined) {
+            // If the data has already been cached, draw it
+            context.drawImage(overlay.img, 0, 0);
+        } else {
+            // Get minimum and maximum thresholds
+            var minThresh = toolData.data[0].minThresh;
+            var maxThresh = toolData.data[0].maxThresh;
+            var color = toolData.data[0].color;
+            var opacity = Math.ceil(toolData.data[0].opacity * 255);
+
+            // Get the element, image, pixel data, and dimensions
+            var element = cornerstone.getEnabledElement(eventData.element);
+            var image = element.image;
+            var pixelData = image.getPixelData();
+            var height = image.height;
+            var width = image.width;
+            var numPixels = height * width;
+
+            // Create a new overlayCanvas, but don't attach it to the DOM
+            var overlayCanvas = document.createElement('canvas');
+            overlayCanvas.width = eventData.canvasContext.canvas.width;
+            overlayCanvas.height = eventData.canvasContext.canvas.height;
+            
+            // Fill new overlayCanvas's context with the specified color
+            var overlayContext = overlayCanvas.getContext("2d");
+            overlayContext.fillStyle = color;
+            overlayContext.fillRect(0,0, width, height);
+            
+            // Set the overlay context to the pixel coordinate system
+            cornerstone.setToPixelCoordinateSystem(eventData.enabledElement, overlayContext);
+
+            // Create a new, blank ImageData object
+            var imageData = overlayContext.getImageData(0, 0, width, height);
+            var canvasImageDataIndex = 3;
+
+            // Detach the overlayCanvas ImageData object
+            var canvasImageDataData = imageData.data;
+            
+            var pixelDataIndex = 0;
+
+            // Loop through the pixel data array.
+            var pixel;
+            while(pixelDataIndex < numPixels) {
+                // Get the relevant pixel
+                pixel = pixelData[pixelDataIndex++];
+
+                // If it's within the threshold window
+                // set the alpha channel to the desired opacity
+                if (pixel >= minThresh && pixel <= maxThresh) {
+                    canvasImageDataData[canvasImageDataIndex] = opacity;
+                } else {
+                    canvasImageDataData[canvasImageDataIndex] = 0;
+                }
+                canvasImageDataIndex += 4;
             }
+
+            // Reattach the array to the ImageData object
+            overlayContext.putImageData(imageData, 0, 0);
+
+            // Produce a PNG file
+            var dataUri = overlayCanvas.toDataURL();
+
+            // Create an Image with the given PNG
+            var img = new Image();
+            img.src = dataUri;
+
+            img.onload=function(){
+                // Draw it onto the original canvas context
+                context.drawImage(img, 0, 0);
+            };
+
+            overlay = {"img": img};
         }
-
-        imageData.data.set(storedPixelData);
-        new_context.putImageData(imageData, 0, 0);
-
-        var dataUri = canvas.toDataURL(); // produces a PNG file
-
-        var img = new Image();
-        img.src = dataUri; //"http://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"; //transparent png
-        //img.src = "http://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"; //transparent png
-        img.onload=function(){
-            context.drawImage(img,0,0);
-        };
     }
 
-    function enable(element, min, max)
+    function enable(element, data)
     {
-        if (min !== undefined && max !== undefined) {
-            var data = {"minThresh": min,
-                        "maxThresh": max};
-            cornerstoneTools.addToolState(element, toolType, data);
+        if (data === undefined) {
+            data = {"minThresh": 0,
+                    "maxThresh": 100,
+                    "color": "red",
+                    "opacity": 1.0};
         }
+        cornerstoneTools.addToolState(element, toolType, data);
         $(element).on("CornerstoneImageRendered", onImageRendered);
         cornerstone.updateImage(element);
     }
