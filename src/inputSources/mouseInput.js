@@ -150,6 +150,9 @@ var cornerstoneTools = (function ($, cornerstone, cornerstoneMath, cornerstoneTo
             var event = jQuery.Event("CornerstoneToolsMouseUp", eventData);
             $(mouseEventDetail.element).trigger(event, eventData);
 
+            event = jQuery.Event("CornerstoneToolsAction", eventData);
+            $(mouseEventDetail.element).trigger(event, eventData);
+
             $(document).off('mousemove', onMouseMove);
             $(document).off('mouseup', onMouseUp);
         }
