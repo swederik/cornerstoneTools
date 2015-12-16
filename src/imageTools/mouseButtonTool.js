@@ -127,6 +127,7 @@
 
                 cornerstone.updateImage(element);
                 $(element).on('CornerstoneToolsMouseMove', eventData, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+                $(element).on('CornerstoneToolsMouseDownActivate', eventData, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
             }
 
             if (cornerstoneTools.isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
@@ -163,7 +164,13 @@
                         data = toolData.data[i];
                         if (mouseToolInterface.pointNearTool(element, data, coords)) {
                             $(element).off('CornerstoneToolsMouseMove', mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-                            cornerstoneTools.moveAllHandles(e, data, toolData, options, handleDoneMove);
+                            $(element).off('CornerstoneToolsMouseDownActivate', mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
+                            if (eventData.event.shiftKey) {
+                                cornerstoneTools.rotateTool(e, data, toolData, options, handleDoneMove);
+                            } else {
+                                cornerstoneTools.moveAllHandles(e, data, toolData, options, handleDoneMove);
+                            }
+
                             e.stopImmediatePropagation();
                             return false;
                         }
