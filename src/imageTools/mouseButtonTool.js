@@ -147,8 +147,6 @@
 
             var i;
 
-            // now check to see if there is a handle we can move
-        
             var preventHandleOutsideImage;
             if (mouseToolInterface.options && mouseToolInterface.options.preventHandleOutsideImage !== undefined) {
                 preventHandleOutsideImage = mouseToolInterface.options.preventHandleOutsideImage;
@@ -156,6 +154,32 @@
                 preventHandleOutsideImage = false;
             }
 
+            var options = mouseToolInterface.options || {
+                deleteIfHandleOutsideImage: true,
+                preventHandleOutsideImage: false
+            };
+
+
+            // Check if we are close to the tool's rotate-pointm if it has one
+            for (i = 0; i < toolData.data.length; i++) {
+                data = toolData.data[i];
+                if (!data.rotateHandle) {
+                    return;
+                }
+
+                var distanceThreshold = 6;
+                var handleCanvas = cornerstone.pixelToCanvas(element, data.rotateHandle);
+                var distanceToRotateHandle = cornerstoneMath.point.distance(handleCanvas, coords);
+                if (distanceToRotateHandle < distanceThreshold) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+                    data.active = true;
+                    cornerstoneTools.rotateAllHandles(e, data, toolData, mouseToolInterface.toolType, options, handleDoneMove);
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }
+
+            // now check to see if there is a handle we can move
             for (i = 0; i < toolData.data.length; i++) {
                 data = toolData.data[i];
                 var distance = 6;
@@ -174,11 +198,6 @@
             if (!mouseToolInterface.pointNearTool) {
                 return;
             }
-
-            var options = mouseToolInterface.options || {
-                deleteIfHandleOutsideImage: true,
-                preventHandleOutsideImage: false
-            };
 
             for (i = 0; i < toolData.data.length; i++) {
                 data = toolData.data[i];

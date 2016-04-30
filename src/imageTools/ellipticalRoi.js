@@ -11,6 +11,7 @@
             visible: true,
             active: true,
             invalidated: true,
+            angle: 0,
             handles: {
                 start: {
                     x: mouseEventData.currentPoints.image.x,
@@ -32,7 +33,8 @@
                     allowedOutsideImage: true,
                     hasBoundingBox: true
                 }
-            }
+            },
+            rotateHandle: {}
         };
 
         return measurementData;
@@ -41,18 +43,6 @@
 
     ///////// BEGIN IMAGE RENDERING ///////
     function pointInEllipse(ellipse, location) {
-        var xRadius = ellipse.width / 2;
-        var yRadius = ellipse.height / 2;
-
-        if (xRadius <= 0.0 || yRadius <= 0.0) {
-            return false;
-        }
-
-        var center = {
-            x: ellipse.left + xRadius,
-            y: ellipse.top + yRadius
-        };
-
         /* This is a more general form of the circle equation
          *
          * X^2/a^2 + Y^2/b^2 <= 1
@@ -63,7 +53,15 @@
             y: location.y - center.y
         };
 
-        var inEllipse = ((normalized.x * normalized.x) / (xRadius * xRadius)) + ((normalized.y * normalized.y) / (yRadius * yRadius)) <= 1.0;
+        var radiiSquared = {
+            x: ellipse.radiusX * ellipse.radiusX,
+            y: ellipse.radiusY * ellipse.radiusY
+        };
+
+        var term1 = Math.pow((normalized.x * Math.cos(angle) - normalized.y * Math.sin(angle)), 2) / radiiSquared.x;
+        var term2 = Math.pow((normalized.x * Math.sin(angle) + normalized.y * Math.cos(angle)), 2) / radiiSquared.y;
+
+        var inEllipse = (term1 + term2) <= 1.0;
         return inEllipse;
     }
 
@@ -110,32 +108,41 @@
         };
     }
 
+    function getEllipseRadii(topLeft, bottomRight, angle) {
+        var radii = {};
+        return radii;
+    }
+
     function pointNearEllipse(element, data, coords, distance) {
         var startCanvas = cornerstone.pixelToCanvas(element, data.handles.start);
         var endCanvas = cornerstone.pixelToCanvas(element, data.handles.end);
 
-        var minorEllipse = {
-            left: Math.min(startCanvas.x, endCanvas.x) + distance / 2,
-            top: Math.min(startCanvas.y, endCanvas.y) + distance / 2,
-            width: Math.abs(startCanvas.x - endCanvas.x) - distance,
-            height: Math.abs(startCanvas.y - endCanvas.y) - distance
+        var center = {
+            x: (startCanvas.x + endCanvas.x) / 2,
+            y: (startCanvas.x + endCanvas.x) / 2
         };
 
+        var radius = getEllipseRadii(startCanvas, endCanvas, data.angle);
+
+        var minorEllipse = {
+            x: center.x,
+            y: center.y,
+            radiusX: radius.x - distance
+            radiusY: radius.y - distance
+        };
+
+
         var majorEllipse = {
-            left: Math.min(startCanvas.x, endCanvas.x) - distance / 2,
-            top: Math.min(startCanvas.y, endCanvas.y) - distance / 2,
-            width: Math.abs(startCanvas.x - endCanvas.x) + distance,
-            height: Math.abs(startCanvas.y - endCanvas.y) + distance
+            x: center.x,
+            y: center.y,
+            radiusX: radius.x + distance
+            radiusY: radius.y + distance
         };
 
         var pointInMinorEllipse = pointInEllipse(minorEllipse, coords);
         var pointInMajorEllipse = pointInEllipse(majorEllipse, coords);
 
-        if (pointInMajorEllipse && !pointInMinorEllipse) {
-            return true;
-        }
-
-        return false;
+        return (pointInMajorEllipse && !pointInMinorEllipse);
     }
 
     function pointNearTool(element, data, coords) {
@@ -195,15 +202,49 @@
             context.beginPath();
             context.strokeStyle = color;
             context.lineWidth = lineWidth;
-            cornerstoneTools.drawEllipse(context, leftCanvas, topCanvas, widthCanvas, heightCanvas);
+
+            var xCenterCanvas = (handleStartCanvas.x + handleEndCanvas.x) / 2;
+            var yCenterCanvas = (handleStartCanvas.y + handleEndCanvas.y) / 2;
+            var yRadiusCanvas = Math.abs(handleStartCanvas.x - handleEndCanvas.x) / 2;
+            var xRadiusCanvas = Math.abs(handleStartCanvas.y - handleEndCanvas.y) / 2;
+
+            cornerstoneTools.drawEllipse(context, xCenterCanvas, yCenterCanvas, xRadiusCanvas, yRadiusCanvas, data.angle);
             context.closePath();
 
-            // draw the handles
-            var handleOptions = {
-                drawHandlesIfActive: (config && config.drawHandlesOnHover)
+            var left = Math.min(data.handles.start.x, data.handles.end.x);
+            var top = Math.min(data.handles.start.y, data.handles.end.y);
+            var center = {
+                x: (data.handles.start.x + data.handles.end.x) / 2,
+                y: (data.handles.start.y + data.handles.end.y) / 2
             };
 
-            cornerstoneTools.drawHandles(context, eventData, data.handles, color, handleOptions);
+            data.center = center;
+            data.rotateHandle.x = left + 50;
+            data.rotateHandle.y = top + 30;
+
+            if (data.active) {
+                var handleRadius = 7;
+                context.beginPath();
+                var rotateHandleCanvasCoords = cornerstone.pixelToCanvas(eventData.element, data.rotateHandle);
+                context.arc(rotateHandleCanvasCoords.x, rotateHandleCanvasCoords.y, handleRadius, 0, 2 * Math.PI);
+                context.fillStyle = cornerstoneTools.toolColors.getActiveColor();
+                context.fill();
+                context.stroke();
+            }
+
+            // draw the handles if the tool is active
+            if (config && config.drawHandlesOnHover) {
+                if (data.active === true) {
+                    cornerstoneTools.drawHandles(context, eventData, data.handles, color);
+                } else {
+                    var handleOptions = {
+                        drawHandlesIfActive: true
+                    };
+                    cornerstoneTools.drawHandles(context, eventData, data.handles, color, handleOptions);
+                }
+            } else {
+                cornerstoneTools.drawHandles(context, eventData, data.handles, color);    
+            }
 
             var area,
                 meanStdDev;
@@ -213,10 +254,10 @@
                 area = data.area;
             } else {
                 // TODO: calculate this in web worker for large pixel counts...
+
+                
                 var width = Math.abs(data.handles.start.x - data.handles.end.x);
                 var height = Math.abs(data.handles.start.y - data.handles.end.y);
-                var left = Math.min(data.handles.start.x, data.handles.end.x);
-                var top = Math.min(data.handles.start.y, data.handles.end.y);
 
                 var pixels = cornerstone.getPixels(eventData.element, left, top, width, height);
 
@@ -229,7 +270,11 @@
 
                 // Calculate the mean, stddev, and area
                 meanStdDev = calculateMeanStdDev(pixels, ellipse);
-                area = Math.PI * (width * eventData.image.columnPixelSpacing / 2) * (height * eventData.image.rowPixelSpacing / 2);
+                
+                var columnPixelSpacing = eventData.image.columnPixelSpacing || 1;
+                var rowPixelSpacing = eventData.image.rowPixelSpacing || 1;
+
+                area = Math.PI * (width * columnPixelSpacing / 2) * (height * rowPixelSpacing / 2);
 
                 data.invalidated = false;
                 if (!isNaN(area)) {
@@ -253,8 +298,13 @@
             }
 
             if (area !== undefined && !isNaN(area)) {
-                // Char code 178 is a superscript 2 for mm^2
-                var areaText = 'Area: ' + numberWithCommas(area.toFixed(2)) + ' mm' + String.fromCharCode(178);
+                // Char code 178 is a superscript 2
+                var suffix = ' mm' + String.fromCharCode(178);
+                if (!eventData.image.rowPixelSpacing || !eventData.image.columnPixelSpacing) {
+                    suffix = ' pixels'  + String.fromCharCode(178);
+                }
+
+                var areaText = 'Area: ' + numberWithCommas(area.toFixed(2)) + suffix;
                 textLines.push(areaText);
             }
 

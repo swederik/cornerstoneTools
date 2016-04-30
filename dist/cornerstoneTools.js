@@ -1023,8 +1023,6 @@ if (typeof cornerstoneTools === 'undefined') {
 
             var i;
 
-            // now check to see if there is a handle we can move
-        
             var preventHandleOutsideImage;
             if (mouseToolInterface.options && mouseToolInterface.options.preventHandleOutsideImage !== undefined) {
                 preventHandleOutsideImage = mouseToolInterface.options.preventHandleOutsideImage;
@@ -1032,6 +1030,32 @@ if (typeof cornerstoneTools === 'undefined') {
                 preventHandleOutsideImage = false;
             }
 
+            var options = mouseToolInterface.options || {
+                deleteIfHandleOutsideImage: true,
+                preventHandleOutsideImage: false
+            };
+
+
+            // Check if we are close to the tool's rotate-pointm if it has one
+            for (i = 0; i < toolData.data.length; i++) {
+                data = toolData.data[i];
+                if (!data.rotateHandle) {
+                    return;
+                }
+
+                var distanceThreshold = 6;
+                var handleCanvas = cornerstone.pixelToCanvas(element, data.rotateHandle);
+                var distanceToRotateHandle = cornerstoneMath.point.distance(handleCanvas, coords);
+                if (distanceToRotateHandle < distanceThreshold) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+                    data.active = true;
+                    cornerstoneTools.rotateAllHandles(e, data, toolData, mouseToolInterface.toolType, options, handleDoneMove);
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }
+
+            // now check to see if there is a handle we can move
             for (i = 0; i < toolData.data.length; i++) {
                 data = toolData.data[i];
                 var distance = 6;
@@ -1050,11 +1074,6 @@ if (typeof cornerstoneTools === 'undefined') {
             if (!mouseToolInterface.pointNearTool) {
                 return;
             }
-
-            var options = mouseToolInterface.options || {
-                deleteIfHandleOutsideImage: true,
-                preventHandleOutsideImage: false
-            };
 
             for (i = 0; i < toolData.data.length; i++) {
                 data = toolData.data[i];
@@ -3012,6 +3031,7 @@ if (typeof cornerstoneTools === 'undefined') {
             visible: true,
             active: true,
             invalidated: true,
+            angle: 0,
             handles: {
                 start: {
                     x: mouseEventData.currentPoints.image.x,
@@ -3033,7 +3053,8 @@ if (typeof cornerstoneTools === 'undefined') {
                     allowedOutsideImage: true,
                     hasBoundingBox: true
                 }
-            }
+            },
+            rotateHandle: {}
         };
 
         return measurementData;
@@ -3042,18 +3063,6 @@ if (typeof cornerstoneTools === 'undefined') {
 
     ///////// BEGIN IMAGE RENDERING ///////
     function pointInEllipse(ellipse, location) {
-        var xRadius = ellipse.width / 2;
-        var yRadius = ellipse.height / 2;
-
-        if (xRadius <= 0.0 || yRadius <= 0.0) {
-            return false;
-        }
-
-        var center = {
-            x: ellipse.left + xRadius,
-            y: ellipse.top + yRadius
-        };
-
         /* This is a more general form of the circle equation
          *
          * X^2/a^2 + Y^2/b^2 <= 1
@@ -3064,7 +3073,15 @@ if (typeof cornerstoneTools === 'undefined') {
             y: location.y - center.y
         };
 
-        var inEllipse = ((normalized.x * normalized.x) / (xRadius * xRadius)) + ((normalized.y * normalized.y) / (yRadius * yRadius)) <= 1.0;
+        var radiiSquared = {
+            x: ellipse.radiusX * ellipse.radiusX,
+            y: ellipse.radiusY * ellipse.radiusY
+        };
+
+        var term1 = Math.pow((normalized.x * Math.cos(angle) - normalized.y * Math.sin(angle)), 2) / radiiSquared.x;
+        var term2 = Math.pow((normalized.x * Math.sin(angle) + normalized.y * Math.cos(angle)), 2) / radiiSquared.y;
+
+        var inEllipse = (term1 + term2) <= 1.0;
         return inEllipse;
     }
 
@@ -3111,32 +3128,41 @@ if (typeof cornerstoneTools === 'undefined') {
         };
     }
 
+    function getEllipseRadii(topLeft, bottomRight, angle) {
+        var radii = {};
+        return radii;
+    }
+
     function pointNearEllipse(element, data, coords, distance) {
         var startCanvas = cornerstone.pixelToCanvas(element, data.handles.start);
         var endCanvas = cornerstone.pixelToCanvas(element, data.handles.end);
 
-        var minorEllipse = {
-            left: Math.min(startCanvas.x, endCanvas.x) + distance / 2,
-            top: Math.min(startCanvas.y, endCanvas.y) + distance / 2,
-            width: Math.abs(startCanvas.x - endCanvas.x) - distance,
-            height: Math.abs(startCanvas.y - endCanvas.y) - distance
+        var center = {
+            x: (startCanvas.x + endCanvas.x) / 2,
+            y: (startCanvas.x + endCanvas.x) / 2
         };
 
+        var radius = getEllipseRadii(startCanvas, endCanvas, data.angle);
+
+        var minorEllipse = {
+            x: center.x,
+            y: center.y,
+            radiusX: radius.x - distance
+            radiusY: radius.y - distance
+        };
+
+
         var majorEllipse = {
-            left: Math.min(startCanvas.x, endCanvas.x) - distance / 2,
-            top: Math.min(startCanvas.y, endCanvas.y) - distance / 2,
-            width: Math.abs(startCanvas.x - endCanvas.x) + distance,
-            height: Math.abs(startCanvas.y - endCanvas.y) + distance
+            x: center.x,
+            y: center.y,
+            radiusX: radius.x + distance
+            radiusY: radius.y + distance
         };
 
         var pointInMinorEllipse = pointInEllipse(minorEllipse, coords);
         var pointInMajorEllipse = pointInEllipse(majorEllipse, coords);
 
-        if (pointInMajorEllipse && !pointInMinorEllipse) {
-            return true;
-        }
-
-        return false;
+        return (pointInMajorEllipse && !pointInMinorEllipse);
     }
 
     function pointNearTool(element, data, coords) {
@@ -3196,15 +3222,49 @@ if (typeof cornerstoneTools === 'undefined') {
             context.beginPath();
             context.strokeStyle = color;
             context.lineWidth = lineWidth;
-            cornerstoneTools.drawEllipse(context, leftCanvas, topCanvas, widthCanvas, heightCanvas);
+
+            var xCenterCanvas = (handleStartCanvas.x + handleEndCanvas.x) / 2;
+            var yCenterCanvas = (handleStartCanvas.y + handleEndCanvas.y) / 2;
+            var yRadiusCanvas = Math.abs(handleStartCanvas.x - handleEndCanvas.x) / 2;
+            var xRadiusCanvas = Math.abs(handleStartCanvas.y - handleEndCanvas.y) / 2;
+
+            cornerstoneTools.drawEllipse(context, xCenterCanvas, yCenterCanvas, xRadiusCanvas, yRadiusCanvas, data.angle);
             context.closePath();
 
-            // draw the handles
-            var handleOptions = {
-                drawHandlesIfActive: (config && config.drawHandlesOnHover)
+            var left = Math.min(data.handles.start.x, data.handles.end.x);
+            var top = Math.min(data.handles.start.y, data.handles.end.y);
+            var center = {
+                x: (data.handles.start.x + data.handles.end.x) / 2,
+                y: (data.handles.start.y + data.handles.end.y) / 2
             };
 
-            cornerstoneTools.drawHandles(context, eventData, data.handles, color, handleOptions);
+            data.center = center;
+            data.rotateHandle.x = left + 50;
+            data.rotateHandle.y = top + 30;
+
+            if (data.active) {
+                var handleRadius = 7;
+                context.beginPath();
+                var rotateHandleCanvasCoords = cornerstone.pixelToCanvas(eventData.element, data.rotateHandle);
+                context.arc(rotateHandleCanvasCoords.x, rotateHandleCanvasCoords.y, handleRadius, 0, 2 * Math.PI);
+                context.fillStyle = cornerstoneTools.toolColors.getActiveColor();
+                context.fill();
+                context.stroke();
+            }
+
+            // draw the handles if the tool is active
+            if (config && config.drawHandlesOnHover) {
+                if (data.active === true) {
+                    cornerstoneTools.drawHandles(context, eventData, data.handles, color);
+                } else {
+                    var handleOptions = {
+                        drawHandlesIfActive: true
+                    };
+                    cornerstoneTools.drawHandles(context, eventData, data.handles, color, handleOptions);
+                }
+            } else {
+                cornerstoneTools.drawHandles(context, eventData, data.handles, color);    
+            }
 
             var area,
                 meanStdDev;
@@ -3214,10 +3274,10 @@ if (typeof cornerstoneTools === 'undefined') {
                 area = data.area;
             } else {
                 // TODO: calculate this in web worker for large pixel counts...
+
+                
                 var width = Math.abs(data.handles.start.x - data.handles.end.x);
                 var height = Math.abs(data.handles.start.y - data.handles.end.y);
-                var left = Math.min(data.handles.start.x, data.handles.end.x);
-                var top = Math.min(data.handles.start.y, data.handles.end.y);
 
                 var pixels = cornerstone.getPixels(eventData.element, left, top, width, height);
 
@@ -3230,7 +3290,11 @@ if (typeof cornerstoneTools === 'undefined') {
 
                 // Calculate the mean, stddev, and area
                 meanStdDev = calculateMeanStdDev(pixels, ellipse);
-                area = Math.PI * (width * eventData.image.columnPixelSpacing / 2) * (height * eventData.image.rowPixelSpacing / 2);
+                
+                var columnPixelSpacing = eventData.image.columnPixelSpacing || 1;
+                var rowPixelSpacing = eventData.image.rowPixelSpacing || 1;
+
+                area = Math.PI * (width * columnPixelSpacing / 2) * (height * rowPixelSpacing / 2);
 
                 data.invalidated = false;
                 if (!isNaN(area)) {
@@ -3254,8 +3318,13 @@ if (typeof cornerstoneTools === 'undefined') {
             }
 
             if (area !== undefined && !isNaN(area)) {
-                // Char code 178 is a superscript 2 for mm^2
-                var areaText = 'Area: ' + numberWithCommas(area.toFixed(2)) + ' mm' + String.fromCharCode(178);
+                // Char code 178 is a superscript 2
+                var suffix = ' mm' + String.fromCharCode(178);
+                if (!eventData.image.rowPixelSpacing || !eventData.image.columnPixelSpacing) {
+                    suffix = ' pixels'  + String.fromCharCode(178);
+                }
+
+                var areaText = 'Area: ' + numberWithCommas(area.toFixed(2)) + suffix;
                 textLines.push(areaText);
             }
 
@@ -7099,6 +7168,101 @@ if (typeof cornerstoneTools === 'undefined') {
  
 // End Source; src/manipulators/moveNewHandleTouch.js
 
+// Begin Source: src/manipulators/rotateAllHandles.js
+(function($, cornerstone, cornerstoneMath, cornerstoneTools) {
+
+    'use strict';
+
+    function rotatePoint(point, angle, center) {
+        var rotated = {
+            x: center.x + (point.x - center.x) * Math.cos(angle) - (point.y - center.y) * Math.sin(angle),
+            y: center.y + (point.x - center.x) * Math.sin(angle) + (point.y - center.y) * Math.cos(angle)
+        };
+
+        return rotated;
+    }
+
+    function angleBetween(start, end) {
+        var y = end.y - start.y;
+        var x = end.x - start.x;
+        var radians = Math.atan2(y, x);
+        return radians;
+    }
+
+    function rotateAllHandles(mouseEventData, data, toolData, toolType, options, doneMovingCallback) {
+        var element = mouseEventData.element;
+        var center = data.center;
+
+        function mouseDragCallback(e, eventData) {
+            data.active = true;
+            var angle = angleBetween(center, eventData.deltaPoints.image);
+            data.angle += angle;
+
+            Object.keys(data.handles).forEach(function(name) {
+                var handle = data.handles[name];
+                if (handle.movesIndependently === true) {
+                    return;
+                }
+
+                var newLocation = rotatePoint(handle, angle, center);
+                handle.x = newLocation.x;
+                handle.y = newLocation.y;
+
+                if (options.preventHandleOutsideImage === true) {
+                    handle.x = Math.max(handle.x, 0);
+                    handle.x = Math.min(handle.x, eventData.image.width);
+
+                    handle.y = Math.max(handle.y, 0);
+                    handle.y = Math.min(handle.y, eventData.image.height);
+                }
+            });
+
+            cornerstone.updateImage(element);
+
+            var eventType = 'CornerstoneToolsMeasurementModified';
+            var modifiedEventData = {
+                toolType: toolType,
+                element: element,
+                measurementData: data
+            };
+            $(element).trigger(eventType, modifiedEventData);
+
+            return false; // false = causes jquery to preventDefault() and stopPropagation() this event
+        }
+
+        $(element).on('CornerstoneToolsMouseDrag', mouseDragCallback);
+
+        function mouseUpCallback(e, eventData) {
+            data.invalidated = true;
+
+            $(element).off('CornerstoneToolsMouseDrag', mouseDragCallback);
+            $(element).off('CornerstoneToolsMouseUp', mouseUpCallback);
+            $(element).off('CornerstoneToolsMouseClick', mouseUpCallback);
+
+            // If any handle is outside the image, delete the tool data
+            if (options.deleteIfHandleOutsideImage === true &&
+                cornerstoneTools.anyHandlesOutsideImage(eventData, data.handles)) {
+                cornerstoneTools.removeToolState(element, toolType, data);
+            }
+
+            cornerstone.updateImage(element);
+
+            if (typeof doneMovingCallback === 'function') {
+                doneMovingCallback();
+            }
+        }
+
+        $(element).on('CornerstoneToolsMouseUp', mouseUpCallback);
+        $(element).on('CornerstoneToolsMouseClick', mouseUpCallback);
+        return true;
+    }
+
+    // module/private exports
+    cornerstoneTools.rotateAllHandles = rotateAllHandles;
+
+})($, cornerstone, cornerstoneMath, cornerstoneTools); 
+// End Source; src/manipulators/rotateAllHandles.js
+
 // Begin Source: src/manipulators/touchMoveAllHandles.js
 (function($, cornerstone, cornerstoneMath, cornerstoneTools) {
 
@@ -10487,21 +10651,24 @@ Display scroll progress bar across bottom of image.
     'use strict';
 
     // http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
-    function drawEllipse(context, x, y, w, h) {
-        var kappa = 0.5522848,
-            ox = (w / 2) * kappa, // control point offset horizontal
-            oy = (h / 2) * kappa, // control point offset vertical
-            xe = x + w, // x-end
-            ye = y + h, // y-end
-            xm = x + w / 2, // x-middle
-            ym = y + h / 2; // y-middle
+    function drawEllipse(context, centerX, centerY, radiusX, radiusY, rotationAngle) {
+        if (rotationAngle === undefined) {
+            rotationAngle = 0;
+        }
 
         context.beginPath();
-        context.moveTo(x, ym);
-        context.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
-        context.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
-        context.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
-        context.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+        
+        for (var i = 0 * Math.PI; i < 2 * Math.PI; i += 0.01) {
+            var xPos = centerX - (radiusX * Math.sin(i)) * Math.sin(rotationAngle * Math.PI) + (radiusY * Math.cos(i)) * Math.cos(rotationAngle * Math.PI);
+            var yPos = centerY + (radiusY * Math.cos(i)) * Math.sin(rotationAngle * Math.PI) + (radiusX * Math.sin(i)) * Math.cos(rotationAngle * Math.PI);
+
+            if (i === 0) {
+                context.moveTo(xPos, yPos);
+            } else {
+                context.lineTo(xPos, yPos);
+            }
+        }
+
         context.closePath();
         context.stroke();
     }
