@@ -49,7 +49,7 @@
          *
          * X^2/a^2 + Y^2/b^2 <= 1
          */
-         
+
         var normalized = {
             x: location.x - center.x,
             y: location.y - center.y
