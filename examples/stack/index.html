@@ -1,0 +1,188 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- support for mobile touch devices -->
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+  
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../dialogPolyfill.css" rel="stylesheet">
+  <link href="../cornerstone.min.css" rel="stylesheet">
+
+  <style>
+    /* prevents selection when left click dragging */
+    .disable-selection {
+      -moz-user-select: none; -webkit-user-select: none; -ms-user-select:none; user-select:none;
+    }
+    /* prevents cursor from changing to the i bar on the overlays*/
+    .noIbar {
+      cursor:default;
+    } 
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <h1>
+        Stack Overlay Example
+      </h1>
+      <p>
+        This page contains an example of the segmentation paintbrush tool
+      </p>
+      <a href="../index.html">Go back to the Examples page</a>
+    </div>
+
+    <div class="row">
+
+      <div class="col-xs-9">
+        <div style="width:512px;height:512px;position:relative;display:inline-block;"
+            oncontextmenu="return false"
+            class='cornerstone-enabled-image disable-selection noIbar'
+            unselectable='on'
+            onselectstart='return false;'
+            onmousedown='return false;'>
+          <div id="dicomImage"
+            style="width:512px;height:512px;top:0px;left:0px; position:absolute;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<!-- jquery - included to make things easier to demo, not needed or used by the cornerstone library but
+is used by our example image loader-->
+<script src="../jquery.min.js"></script>
+
+<!-- include the cornerstone library -->
+<script src="../cornerstone.js"></script>
+<!--<script src="../../../cornerstone/dist/cornerstone.min.js"></script>-->
+  
+<script src="../cornerstoneMath.min.js"></script>
+
+<!-- include the cornerstone tools library -->
+<script src="../../dist/cornerstoneTools.js"></script>
+
+<script src="../dicomParser.js"></script>
+<script src="../cornerstoneWADOImageLoader.js"></script>
+
+<!-- include special code for these examples which provides images -->
+<script src="../exampleImageLoader.js"></script>
+
+<script>
+  var imagePlaneMetadata = {};
+
+  addMetadata = function(imageId, metaData) {
+      imagePlaneMetadata[imageId] = metaData.imagePlane;
+  }
+
+  function metaDataProvider(type, imageId) {
+      if(type === 'imagePlane') {
+          return imagePlaneMetadata[imageId];
+      }
+  }
+
+  cornerstoneTools.metaData.addProvider(metaDataProvider);
+
+  function padLeft(nr, n, str){
+      //http://stackoverflow.com/questions/5366849/convert-1-to-0001-in-javascript
+      return Array(n-String(nr).length+1).join(str||'0')+nr;
+  }
+
+  var url = 'dicomweb:http://localhost:8000/';
+  var imageIds = [];
+  for (var i=1; i<276; i++) {
+      var imageIdPrefix = url + 'examples/stack/LIDC-IDRI-0314-CT/';
+      var imageId = imageIdPrefix + padLeft(i, 6) + '.dcm';
+      imageIds.push(imageId);
+
+      cornerstone.loadAndCacheImage(imageId).then(function(image) {
+        var imagePositionPatientString = image.data.string('x00200032');
+        var pos = imagePositionPatientString.split('\\').map(function(val) {
+          return parseFloat(val);
+        })
+
+        var imagePositionPatient = new cornerstoneMath.Vector3(pos[0], pos[1], pos[2]);
+
+        var metadata = {
+          imagePlane: {
+            imagePositionPatient: imagePositionPatient
+          }
+        };
+        
+        addMetadata(image.imageId, metadata);
+      });
+  }
+
+  var dicomSegImageId = url + 'examples/stack/000000.dcm';
+  var dicomSegImageIds = [];
+  for (var i=0; i<274; i++) {
+      var imageId = dicomSegImageId + '?frame=' + i;
+      dicomSegImageIds.push({
+        imageId: imageId
+      });
+
+      // Terribly inefficient to keep this in here, but whatever
+      cornerstone.loadAndCacheImage(imageId).then(function(image) {
+        var PerFrameFunctionalGroupsSequence = image.data.elements['x52009230'];
+        var thisFrame = PerFrameFunctionalGroupsSequence.items[i].dataSet;
+        var PlanePositionSequence = thisFrame.elements['x00209113'];
+        var imagePositionPatientString = PlanePositionSequence.items[0].dataSet.string('x00200032');
+        var pos = imagePositionPatientString.split('\\').map(function(val) {
+          return parseFloat(val);
+        })
+
+        var imagePositionPatient = new cornerstoneMath.Vector3(pos[0], pos[1], pos[2]);
+
+        var metadata = {
+          imagePlane: {
+            imagePositionPatient: imagePositionPatient
+          }
+        };
+
+        addMetadata(image.imageId, metadata);
+      });
+  }
+
+  // TODO: This is stupid, we should use an array of promises, but I am lazy
+  setTimeout(function() {
+    // Enable the Element for Cornerstone
+    var element = document.getElementById('dicomImage');
+    cornerstone.enable(element);
+
+    imageIds.sort(function(imageId1, imageId2) {
+      var imagePlane1 = cornerstoneTools.metaData.get('imagePlane', imageId1);
+      var imagePlane2 = cornerstoneTools.metaData.get('imagePlane', imageId2);
+      return imagePlane1.imagePositionPatient.z - imagePlane2.imagePositionPatient.z;
+    });
+
+    var imageIdsObj = imageIds.map(function(imageId) {
+      return {
+        imageId: imageId
+      };
+    });
+
+    // Create our Image Objects
+    var imageObj1 = new cornerstoneTools.ImageObject(imageIdsObj);
+    var imageObj2 = new cornerstoneTools.ImageObject(dicomSegImageIds, {
+      opacity: 0.7
+    });
+
+    // Create an array with both Image Objects
+    var imageObjects = [imageObj1, imageObj2];
+
+    // Describe some options for Stack Rendering
+    var stackOptions = {
+      syncPositions: true
+    };
+
+    // Select a renderer and apply the specified options
+    var renderer = new cornerstoneTools.stackRenderers.FusionRenderer(stackOptions);
+
+    // Create a stack from the image object array
+    var stack = new cornerstoneTools.Stack(imageObjects);
+
+    cornerstoneTools.displayStack(element, stack, renderer);
+  }, 10000);
+</script>
+</html>

@@ -2,7 +2,7 @@
 
     'use strict';
 
-    function simpleMouseButtonTool(mouseDownCallback) {
+    function simpleMouseButtonTool(mouseDownCallback, mouseMoveCallback) {
         var configuration = {};
 
         var toolInterface = {
@@ -13,10 +13,30 @@
                     options: options
                 };
                 $(element).on('CornerstoneToolsMouseDownActivate', eventData, mouseDownCallback);
+
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                    $(element).on('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
             },
-            disable: function(element) {$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);},
-            enable: function(element) {$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);},
-            deactivate: function(element) {$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);},
+            disable: function(element) {
+                $(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
+            },
+            enable: function(element) {
+                $(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
+            },
+            deactivate: function(element) {
+                $(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
+            },
             getConfiguration: function() { return configuration;},
             setConfiguration: function(config) {configuration = config;}
         };

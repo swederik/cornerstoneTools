@@ -1,4 +1,4 @@
-/*! cornerstoneTools - v0.7.9 - 2016-10-25 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
+/*! cornerstoneTools - v0.7.9 - 2017-01-11 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
 // Begin Source: src/header.js
 if (typeof cornerstone === 'undefined') {
     cornerstone = {};
@@ -871,7 +871,7 @@ if (typeof cornerstoneTools === 'undefined') {
 
     'use strict';
 
-    function simpleMouseButtonTool(mouseDownCallback) {
+    function simpleMouseButtonTool(mouseDownCallback, mouseMoveCallback) {
         var configuration = {};
 
         var toolInterface = {
@@ -882,10 +882,30 @@ if (typeof cornerstoneTools === 'undefined') {
                     options: options
                 };
                 $(element).on('CornerstoneToolsMouseDownActivate', eventData, mouseDownCallback);
+
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                    $(element).on('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
             },
-            disable: function(element) {$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);},
-            enable: function(element) {$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);},
-            deactivate: function(element) {$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);},
+            disable: function(element) {
+                $(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
+            },
+            enable: function(element) {
+                $(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
+            },
+            deactivate: function(element) {
+                $(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+                if (mouseMoveCallback) {
+                    $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+                }
+            },
             getConfiguration: function() { return configuration;},
             setConfiguration: function(config) {configuration = config;}
         };
@@ -8134,6 +8154,202 @@ if (typeof cornerstoneTools === 'undefined') {
  
 // End Source; src/orientation/invertOrientationString.js
 
+// Begin Source: src/overlayTools/overlay.js
+(function($, cornerstone, cornerstoneTools) {
+
+    'use strict';
+
+    // This module is for creating segmentation overlays
+
+    var configuration = {
+        draw: 1,
+        radius: 10,
+        hoverColor: 'green',
+        dragColor: 'yellow',
+        overlayColor: 'red'
+    };
+
+    var brushImagePositions = [];
+    var lastCanvasCoords;
+    var dynamicImageCanvas = document.createElement('canvas');
+
+    function defaultStrategy(eventData) {
+        var configuration = cornerstoneTools.overlay.getConfiguration();
+        var enabledElement = cornerstone.getEnabledElement(eventData.element);
+        var context = enabledElement.canvas.getContext('2d');
+        context.setTransform(1, 0, 0, 1, 0, 0);
+
+        var coords = eventData.currentPoints.canvas;
+        var radius = configuration.radius * enabledElement.viewport.scale;
+        drawCircle(context, coords, radius, configuration.dragColor);
+
+        brushImagePositions.push({
+            x: Math.round(eventData.currentPoints.image.x),
+            y: Math.round(eventData.currentPoints.image.y)
+        });
+
+        lastCanvasCoords = eventData.currentPoints.canvas;
+    }
+
+    function drawCircle(context, coords, radius, color) {
+        context.save();
+        context.beginPath();
+        context.arc(coords.x, coords.y, radius, 0, 2 * Math.PI, true);
+        context.strokeStyle = color;
+        context.fillStyle = color;
+        context.stroke();
+        context.fill();
+        context.restore();
+    }
+
+    function clearCircle(context, coords, radius) {
+        context.save();
+        context.beginPath();
+        context.arc(coords.x, coords.y, radius, 0, 2 * Math.PI, true);
+        context.clip();
+        context.clearRect(coords.x - radius - 1, coords.y - radius - 1,
+                      radius * 2 + 2, radius * 2 + 2);
+        context.restore();
+    }
+
+    function mouseMoveCallback(e, eventData) {
+        lastCanvasCoords = eventData.currentPoints.canvas;
+        cornerstone.updateImage(eventData.element);
+    }
+
+    function mouseUpCallback(e, eventData) {
+        lastCanvasCoords = eventData.currentPoints.canvas;
+        cornerstone.updateImage(eventData.element, true);
+
+        $(eventData.element).off('CornerstoneToolsMouseDrag', mouseMoveCallback);
+        $(eventData.element).off('CornerstoneToolsMouseDrag', dragCallback);
+        $(eventData.element).off('CornerstoneToolsMouseUp', mouseUpCallback);
+        $(eventData.element).off('CornerstoneToolsMouseClick', mouseUpCallback);
+    }
+
+    function dragCallback(e, eventData) {
+        cornerstoneTools.overlay.strategy(eventData);
+        return false;
+    }
+
+    function mouseDownActivateCallback(e, eventData) {
+        if (cornerstoneTools.isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
+            $(eventData.element).on('CornerstoneToolsMouseDrag', dragCallback);
+            $(eventData.element).on('CornerstoneToolsMouseUp', mouseUpCallback);
+            $(eventData.element).on('CornerstoneToolsMouseClick', mouseUpCallback);
+            cornerstoneTools.overlay.strategy(eventData);
+            return false; // false = causes jquery to preventDefault() and stopPropagation() this event
+        }
+
+        $(eventData.element).on('CornerstoneToolsMouseDrag', mouseMoveCallback);
+        $(eventData.element).on('CornerstoneToolsMouseUp', mouseUpCallback);
+    }
+
+    function onImageRendered(e, eventData) {
+        var configuration = cornerstoneTools.overlay.getConfiguration();
+        var enabledElement = cornerstone.getEnabledElement(eventData.element);
+        var context = enabledElement.canvas.getContext('2d');
+        context.setTransform(1, 0, 0, 1, 0, 0);
+
+        if (!lastCanvasCoords) {
+            return;
+        }
+
+        var radius = configuration.radius * enabledElement.viewport.scale;
+        drawCircle(context, lastCanvasCoords, radius, configuration.hoverColor);
+    }
+
+    function getPixelData() {
+        /*jshint validthis:true */
+        var configuration = cornerstoneTools.overlay.getConfiguration();
+
+        var context = dynamicImageCanvas.getContext('2d');
+        if (configuration.draw === 1) {
+            // Draw
+            brushImagePositions.forEach(function(coords) {
+                drawCircle(context, coords, configuration.radius, configuration.overlayColor);
+            });
+        } else {
+            // Erase
+            brushImagePositions.forEach(function(coords) {
+                clearCircle(context, coords, configuration.radius);
+            });
+        }
+
+        brushImagePositions = [];
+
+        this.rgba = true;
+        var width = this.width;
+        var height = this.height;
+        var imageData = context.getImageData(0, 0, width, height);
+        return imageData.data;
+    }
+
+    function activate(element, mouseButtonMask) {
+        $(element).off('CornerstoneImageRendered', onImageRendered);
+        $(element).on('CornerstoneImageRendered', onImageRendered);
+
+        var eventData = {
+            mouseButtonMask: mouseButtonMask
+        };
+
+        $(element).off('CornerstoneToolsMouseDownActivate', mouseDownActivateCallback);
+        $(element).on('CornerstoneToolsMouseDownActivate', eventData, mouseDownActivateCallback);
+
+        $(element).off('CornerstoneToolsMouseMove', mouseMoveCallback);
+        $(element).on('CornerstoneToolsMouseMove', mouseMoveCallback);
+
+        var enabledElement = cornerstone.getEnabledElement(element);
+        dynamicImageCanvas.width = enabledElement.canvas.width;
+        dynamicImageCanvas.height = enabledElement.canvas.height;
+
+        var context = dynamicImageCanvas.getContext('2d');
+        context.fillStyle = 'rgba(0,0,0,0)';
+        context.fillRect(0, 0, dynamicImageCanvas.width, dynamicImageCanvas.height);
+
+        var dynamicImage = {
+            minPixelValue: 0,
+            maxPixelValue: 255,
+            slope: 1.0,
+            intercept: 0,
+            windowCenter: 127,
+            windowWidth: 256,
+            getPixelData: getPixelData,
+            rows: enabledElement.image.height,
+            columns: enabledElement.image.width,
+            height: enabledElement.image.height,
+            width: enabledElement.image.width,
+            color: true,
+            invert: false,
+            columnPixelSpacing: 1.0,
+            rowPixelSpacing: 1.0,
+            sizeInBytes: enabledElement.image.width * enabledElement.image.height * 4,
+        };
+
+        cornerstone.addLayer(element, dynamicImage);
+
+        cornerstone.updateImage(element);
+    }
+
+    // Module exports
+    cornerstoneTools.overlay = cornerstoneTools.mouseButtonTool({
+        mouseMoveCallback: mouseMoveCallback,
+        mouseDownActivateCallback: mouseDownActivateCallback,
+        onImageRendered: onImageRendered
+    });
+
+    cornerstoneTools.overlay.activate = activate;
+
+    cornerstoneTools.overlay.setConfiguration(configuration);
+    cornerstoneTools.overlay.strategies = {
+        default: defaultStrategy
+    };
+    cornerstoneTools.overlay.strategy = defaultStrategy;
+
+})($, cornerstone, cornerstoneTools);
+ 
+// End Source; src/overlayTools/overlay.js
+
 // Begin Source: src/referenceLines/calculateReferenceLine.js
 (function(cornerstoneTools) {
 
@@ -9141,6 +9357,199 @@ Display scroll progress bar across bottom of image.
 })(cornerstoneTools);
  
 // End Source; src/stackTools/stackScrollKeyboard.js
+
+// Begin Source: src/stacks/displayStack.js
+(function(cornerstone, cornerstoneTools) {
+
+    'use strict';
+
+    /**
+     * Displays a Stack
+     *
+     * @param element Enabled Cornerstone element
+     * @param stack Instance of the Stack class
+     */
+    function displayStack(element, stack, renderer) {
+        if (!element) {
+            throw 'displayStack: No element provided';
+        }
+
+        if (!stack) {
+            throw 'displayStack: No stack provided';
+        }
+
+        if (!renderer || !renderer.render) {
+            throw 'displayStack: No renderer provided';
+        }
+
+        if (!stack.imageObjects) {
+            throw 'displayStack: Stack has no Image Objects to render';
+        }
+
+        renderer.render(element, stack.imageObjects);
+    }
+
+    cornerstoneTools.displayStack = displayStack;
+
+})(cornerstone, cornerstoneTools);
+ 
+// End Source; src/stacks/displayStack.js
+
+// Begin Source: src/stacks/fusionRenderer.js
+(function(cornerstone, cornerstoneTools) {
+
+    'use strict';
+
+    var distances = {};
+
+    function getImagePositionPatient(imageId) {
+        var imagePlane = cornerstoneTools.metaData.get('imagePlane', imageId);
+        if (!imagePlane) {
+            throw new Error('getImagePosition: Image plane is not available for imageId: ' + imageId);
+        }
+
+        if (!imagePlane.imagePositionPatient) {
+            throw new Error('getImagePosition: Image position patient is not available for imageId: ' + imageId);
+        }
+
+        return imagePlane.imagePositionPatient;
+    }
+
+    function getDistanceBetween(imageId1, imageId2) {
+        // Check if we have already calculated this distance
+
+        // TODO: There is probably a smarter way to store the results of this computation?
+        // Maybe a hash of the combined image ids?
+        if (distances[imageId1] && distances[imageId1].hasOwnProperty(imageId2)) {
+            return distances[imageId1][imageId2];
+        } else if (distances[imageId2] && distances[imageId2].hasOwnProperty(imageId1)) {
+            return distances[imageId2][imageId1];
+        }
+
+        // If the distance between these two images is not already calculated, calculate it
+        var imagePosition1 = getImagePositionPatient(imageId1);
+        var imagePosition2 = getImagePositionPatient(imageId2);
+        var distance = imagePosition1.distanceTo(imagePosition2);
+
+        // Store the calculated data in the cache
+        distances[imageId1] = {};
+        distances[imageId1][imageId2] = distance;
+
+        // Return the distance
+        return distance;
+    }
+
+    function findClosestImage(imageIds, targetImageId) {
+        var closestImageId;
+        var minDistance = Infinity;
+
+        // Find the closest image based on the distance between the
+        imageIds.forEach(function(imageId) {
+            var distance = getDistanceBetween(imageId, targetImageId);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestImageId = imageId;
+            }
+        });
+
+        return closestImageId;
+    }
+
+    /**
+     * Creates a FusionRenderer
+     *
+     * @param stackOptions
+     */
+    function FusionRenderer(stackOptions) {
+        this.stackOptions = stackOptions;
+
+        this.render = function(element, imageObjects) {
+            console.log('FusionRenderer render');
+            console.log(this.stackOptions);
+            console.log(element);
+
+            var currentImageIdIndex = 80;
+            // For the base layer, go to the currentImageIdIndex
+            var baseImageObject = imageObjects[0];
+            var currentImage = baseImageObject.images[currentImageIdIndex];
+            var currentImageId = currentImage.imageId;
+            cornerstone.loadAndCacheImage(currentImageId).then(function(image) {
+                cornerstone.addLayer(element, image);
+                cornerstone.updateImage(element);
+            });
+
+            // Splice out the first image
+            imageObjects.splice(0, 1);
+
+            // Loop through the remaining 'overlay' image objects
+            imageObjects.forEach(function(imgObj) {
+                var imageIds = imgObj.images.map(function(image) {
+                    return image.imageId;
+                });
+
+                var imageId = findClosestImage(imageIds, currentImageId);
+                if (!imageId) {
+                    throw new Error('FusionRenderer: findClosestImage did not return an imageId');
+                }
+
+                cornerstone.loadAndCacheImage(imageId).then(function(image) {
+                    cornerstone.addLayer(element, image);
+                    cornerstone.updateImage(element);
+                });
+            });
+        };
+    }
+
+    cornerstoneTools.stackRenderers = {};
+    cornerstoneTools.stackRenderers.FusionRenderer = FusionRenderer;
+
+})(cornerstone, cornerstoneTools);
+ 
+// End Source; src/stacks/fusionRenderer.js
+
+// Begin Source: src/stacks/imageObject.js
+(function(cornerstone, cornerstoneTools) {
+
+    'use strict';
+
+    /**
+     * Creates an Image Object
+     *
+     * @param images
+     * @param options
+     * @constructor
+     */
+    function ImageObject(images, options) {
+        this.images = images;
+        this.options = options;
+    }
+
+    cornerstoneTools.ImageObject = ImageObject;
+
+})(cornerstone, cornerstoneTools);
+ 
+// End Source; src/stacks/imageObject.js
+
+// Begin Source: src/stacks/stack.js
+(function(cornerstone, cornerstoneTools) {
+
+    'use strict';
+
+    /**
+     * Creates a Stack
+     *
+     * @param imageObjects Stack of composite image objects (pixel data, masks, etc)
+     * @param renderer Pluggable renderer
+     */
+    function Stack(imageObjects) {
+        this.imageObjects = imageObjects;
+    }
+
+    cornerstoneTools.Stack = Stack;
+
+})(cornerstone, cornerstoneTools);
+ 
+// End Source; src/stacks/stack.js
 
 // Begin Source: src/stateManagement/applicationState.js
 (function($, cornerstone, cornerstoneTools) {
@@ -10977,6 +11386,49 @@ Display scroll progress bar across bottom of image.
 })($, cornerstone, cornerstoneTools);
  
 // End Source; src/util/RoundToDecimal.js
+
+// Begin Source: src/util/bitArray.js
+(function($, cornerstone, cornerstoneTools) {
+
+    'use strict';
+
+    function getBytesForBinaryFrame(numPixels) {
+        // check whether the 1-bit pixels exactly fit into bytes
+        var remainder = numPixels % 8;
+        // number of bytes that work on an exact fit
+        var bytesRequired = Math.floor(numPixels / 8);
+
+        // add one byte if we have a remainder
+        if (remainder > 0) {
+            bytesRequired++;
+        }
+
+        return bytesRequired;
+    }
+
+    function packBitArray(pixelData) {
+        var numPixels = pixelData.length;
+        var length = getBytesForBinaryFrame(numPixels);
+        var bitPixelData = new Uint8Array(length);
+
+        var bytePos = 0;
+        for (var count = 0; count < numPixels; count++) {
+            // Compute byte position
+            bytePos = Math.floor(count / 8);
+
+            var pixValue = (bitPixelData[count] !== 0);
+            bitPixelData[bytePos] = bitPixelData[bytePos] | pixValue << (count % 8);
+        }
+
+        return pixelData;
+    }
+
+    cornerstoneTools.packBitArray = packBitArray;
+    cornerstoneTools.getBytesForBinaryFrame = getBytesForBinaryFrame;
+
+})($, cornerstone, cornerstoneTools);
+ 
+// End Source; src/util/bitArray.js
 
 // Begin Source: src/util/calculateSUV.js
 (function(cornerstoneTools) {
