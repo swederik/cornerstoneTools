@@ -20,7 +20,8 @@
         drawHandles: false,
         drawHandlesOnHover: true,
         currentLetter: 'A',
-        currentNumber: 1,
+        currentNumber: 0,
+        showCoordinates: true,
         countUp: true
     };
     /// --- Mouse Tool --- ///
@@ -38,10 +39,14 @@
         // delete the measurement
         cornerstoneTools.removeToolState(element, toolType, measurementData);
       }
-
+      
       if (measurementData.text === undefined) {
+        if ( config.countUp ) {
+          config.currentNumber++;
+        } else {
+          config.currentNumber--;
+        }
         measurementData.text = config.currentLetter + config.currentNumber;
-        config.currentNumber++;
       }
       
       cornerstone.updateImage(element);
@@ -84,13 +89,12 @@
 
     ///////// BEGIN IMAGE RENDERING ///////
     function onImageRendered(e, eventData) {
-      
       // if we have no toolData for this element, return immediately as there is nothing to do
       var toolData = cornerstoneTools.getToolState(e.currentTarget, toolType);
       if (!toolData) {
         return;
       }
-
+      
       var enabledElement = eventData.enabledElement;
 
       // we have tool data for this element - iterate over each one and draw it
@@ -140,9 +144,15 @@
         if (data.text && data.text !== '') {
           context.font = font;
           
-          var textPlusCoords = data.text + ' x: ' + Math.round(data.handles.end.x) + 
-          ' y: ' + Math.round(data.handles.end.y);
-
+          var textPlusCoords = '';
+          
+          if ( config.showCoordinates ) {
+            textPlusCoords = data.text + ' x: ' + Math.round(data.handles.end.x) + 
+            ' y: ' + Math.round(data.handles.end.y);
+          } else{
+            textPlusCoords = data.text;
+          }
+          
           // Calculate the text coordinates.
           var textWidth = context.measureText(textPlusCoords).width + 10;
           var textHeight = cornerstoneTools.textStyle.getFontSize() + 10;
