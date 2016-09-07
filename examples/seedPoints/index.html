@@ -5,7 +5,9 @@
     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
 
     <!-- twitter bootstrap CSS stylesheet - not required by cornerstoneTools -->
-    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <!--<link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">-->
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    
 
     <link href="../dialogPolyfill.css" rel="stylesheet">
 
@@ -63,14 +65,14 @@
             </ul>
         </div>
         <div class="col-xs-6">
-            <div style="width:256px;height:256px;position:relative;display:inline-block;color:white;"
+            <div style="width:512px;height:512px;position:relative;display:inline-block;color:white;"
                  oncontextmenu="return false"
                  class='cornerstone-enabled-image disable-selection noIbar'
                  unselectable='on'
                  onselectstart='return false;'
                  onmousedown='return false;'>
                 <div id="dicomImage"
-                     style="width:256px;height:256px;top:0px;left:0px; position:absolute;">
+                     style="width:512px;height:512px;top:0px;left:0px; position:absolute;">
                 </div>
             </div>
             <dialog class="annotationDialog">
@@ -118,6 +120,10 @@ is used by our example image loader-->
 <script src="../dialogPolyfill.js"></script>
 
 <script>
+
+
+  
+
     // Register the dialogs using the HTML5 Dialog Polyfill
     var dialog = document.querySelector('dialog');
     dialogPolyfill.registerDialog(dialog);
@@ -125,6 +131,12 @@ is used by our example image loader-->
     var element = $('#dicomImage').get(0);
 
     var imageId = 'example://1';
+    
+    // TODO Make this an input from the page
+    var firstLetter = "A";
+    var firstNumber = 1;
+    var countUp = true;
+    
 
     // Define a callback to get your text annotation
     // This could be used, e.g. to open a modal
@@ -206,7 +218,9 @@ is used by our example image loader-->
         changeTextCallback : changeTextCallback,
         drawHandles : false,
         drawHandlesOnHover : true,
-        arrowFirst : true
+        currentLetter: firstLetter,
+        currentNumber: firstNumber,
+        countUp: countUp
     }
 
     // image enable the dicomImage element
