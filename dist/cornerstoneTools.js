@@ -1,4 +1,4 @@
-/*! cornerstoneTools - v0.7.8 - 2016-09-07 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
+/*! cornerstoneTools - v0.7.8 - 2016-09-08 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
 // Begin Source: src/header.js
 if (typeof cornerstone === 'undefined') {
     cornerstone = {};
@@ -5222,8 +5222,8 @@ if (typeof cornerstoneTools === 'undefined') {
 
     // Define a callback to get your text annotation
     // This could be used, e.g. to open a modal
-    function getTextCallback(doneChangingTextCallback) {
-        doneChangingTextCallback(prompt('Enter your annotation:'));
+    function getTextCallback(doneGetTextCallback) {
+        doneGetTextCallback(prompt('Enter your annotation:'));
     }
 
     function changeTextCallback(data, eventData, doneChangingTextCallback) {
@@ -5247,25 +5247,36 @@ if (typeof cornerstoneTools === 'undefined') {
       var element = mouseEventData.element;
       var config = cornerstoneTools.seedAnnotate.getConfiguration();
       var measurementData = createNewMeasurement(mouseEventData);
-            
+      
+      function doneGetTextCallback(text) {
+        if (text !== null) {
+          measurementData.text = text;
+        } else {
+          cornerstoneTools.removeToolState(mouseEventData.element, toolType, measurementData);
+        }
+        
+        measurementData.active = false;
+        cornerstone.updateImage(mouseEventData.element);
+      }
+      
       // associate this data with this imageId so we can render it and manipulate it
       cornerstoneTools.addToolState(element, toolType, measurementData);
-   
+      
+      cornerstone.updateImage(mouseEventData.element);
+
+      // Check if the current handle is outside the image,
+      // If it is, prevent the handle creation
       if (cornerstoneTools.anyHandlesOutsideImage(mouseEventData, measurementData.handles)) {
         // delete the measurement
         cornerstoneTools.removeToolState(element, toolType, measurementData);
+        cornerstone.updateImage(mouseEventData.element);
       }
-      
+    
       if (measurementData.text === undefined) {
-        if ( config.countUp ) {
-          config.currentNumber++;
-        } else {
-          config.currentNumber--;
-        }
-        measurementData.text = config.currentLetter + config.currentNumber;
+        config.getTextCallback(doneGetTextCallback);
+        cornerstone.updateImage(mouseEventData.element);
       }
       
-      cornerstone.updateImage(element);
     }
 
     function createNewMeasurement(mouseEventData) {
@@ -5584,25 +5595,25 @@ if (typeof cornerstoneTools === 'undefined') {
       return false; // false = causes jquery to preventDefault() and stopPropagation() this event
     }
 
-    cornerstoneTools.seedAnnotate = cornerstoneTools.mouseButtonTool({
-        addNewMeasurement: addNewMeasurement,
-        createNewMeasurement: createNewMeasurement,
-        onImageRendered: onImageRendered,
-        pointNearTool: pointNearTool,
-        toolType: toolType,
-        mouseDoubleClickCallback: doubleClickCallback
-    });
+  cornerstoneTools.seedAnnotate = cornerstoneTools.mouseButtonTool({
+    addNewMeasurement: addNewMeasurement,
+    createNewMeasurement: createNewMeasurement,
+    onImageRendered: onImageRendered,
+    pointNearTool: pointNearTool,
+    toolType: toolType,
+    mouseDoubleClickCallback: doubleClickCallback
+  });
 
-    cornerstoneTools.seedAnnotate.setConfiguration(configuration);
+  cornerstoneTools.seedAnnotate.setConfiguration(configuration);
 
-    cornerstoneTools.seedAnnotateTouch = cornerstoneTools.touchTool({
-        addNewMeasurement: addNewMeasurementTouch,
-        createNewMeasurement: createNewMeasurement,
-        onImageRendered: onImageRendered,
-        pointNearTool: pointNearTool,
-        toolType: toolType,
-        pressCallback: pressCallback
-    });
+  cornerstoneTools.seedAnnotateTouch = cornerstoneTools.touchTool({
+    addNewMeasurement: addNewMeasurementTouch,
+    createNewMeasurement: createNewMeasurement,
+    onImageRendered: onImageRendered,
+    pointNearTool: pointNearTool,
+    toolType: toolType,
+    pressCallback: pressCallback
+  });
 
 })($, cornerstone, cornerstoneMath, cornerstoneTools);
  
