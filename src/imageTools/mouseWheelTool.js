@@ -3,6 +3,8 @@
     'use strict';
 
     function mouseWheelTool(mouseWheelCallback) {
+        var configuration = {};
+
         var toolInterface = {
             activate: function(element) {
                 $(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);
@@ -12,7 +14,9 @@
             },
             disable: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);},
             enable: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);},
-            deactivate: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);}
+            deactivate: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);},
+            getConfiguration: function() { return configuration;},
+            setConfiguration: function(config) {configuration = config;}
         };
         return toolInterface;
     }

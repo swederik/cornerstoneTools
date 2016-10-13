@@ -2,6 +2,14 @@
 
     'use strict';
 
+    function isNumber(value) {
+        return typeof value === 'number' && !isNaN(value);
+    }
+
+    function isInteger(number) {
+        return number % 1 === 0;
+    }
+
     function scrollToIndex(element, newImageIdIndex) {
         var toolData = cornerstoneTools.getToolState(element, 'stack');
         if (!toolData || !toolData.data || !toolData.data.length) {
@@ -9,6 +17,12 @@
         }
 
         var stackData = toolData.data[0];
+
+        if (!isNumber(newImageIdIndex)) {
+            throw 'scrollToIndex: index provided is not numeric: ' + newImageIdIndex;
+        } else if (isNumber(newImageIdIndex) && !isInteger(newImageIdIndex)) {
+            throw 'scrollToIndex: index provided is not an integer: ' + newImageIdIndex;
+        }
 
         // Allow for negative indexing
         if (newImageIdIndex < 0) {

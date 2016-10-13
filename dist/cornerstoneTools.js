@@ -1,4 +1,4 @@
-/*! cornerstoneTools - v0.7.9 - 2016-10-25 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
+/*! cornerstoneTools - v0.7.9 - 2016-12-18 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
 // Begin Source: src/header.js
 if (typeof cornerstone === 'undefined') {
     cornerstone = {};
@@ -22,77 +22,61 @@ if (typeof cornerstoneTools === 'undefined') {
 
     'use strict';
 
-    var scrollTimeout;
-    var scrollTimeoutDelay = 1;
-
     function mouseWheel(e) {
-        clearTimeout(scrollTimeout);
+        e.preventDefault();
 
-        scrollTimeout = setTimeout(function() {
-            // !!!HACK/NOTE/WARNING!!!
-            // for some reason I am getting mousewheel and DOMMouseScroll events on my
-            // mac os x mavericks system when middle mouse button dragging.
-            // I couldn't find any info about this so this might break other systems
-            // webkit hack
-            if (e.originalEvent.type === 'mousewheel' && e.originalEvent.wheelDeltaY === 0) {
-                return;
-            }
-            // firefox hack
-            if (e.originalEvent.type === 'DOMMouseScroll' && e.originalEvent.axis === 1) {
-                return;
-            }
+        var element = e.target.parentNode;
 
-            var element = e.currentTarget;
+        if (!e.deltaY) {
+            return;
+        }
 
-            var x;
-            var y;
+        var x;
+        var y;
+        if (e.pageX !== undefined && e.pageY !== undefined) {
+            x = e.pageX;
+            y = e.pageY;
+        }
 
-            if (e.pageX !== undefined && e.pageY !== undefined) {
-                x = e.pageX;
-                y = e.pageY;
-            } else if (e.originalEvent &&
-                       e.originalEvent.pageX !== undefined &&
-                       e.originalEvent.pageY !== undefined) {
-                x = e.originalEvent.pageX;
-                y = e.originalEvent.pageY;
-            } else {
-                // IE9 & IE10
-                x = e.x;
-                y = e.y;
-            }
+        var startingCoords = cornerstone.pageToPixel(element, x, y);
 
-            var startingCoords = cornerstone.pageToPixel(element, x, y);
+        var wheelDeltaPixels;
 
-            e = window.event || e; // old IE support
-            var wheelDelta = e.wheelDelta || -e.detail || -e.originalEvent.detail || -e.originalEvent.deltaY;
-            var direction = Math.max(-1, Math.min(1, (wheelDelta)));
+        if (e.deltaMode === 1) {
+            // DeltaY is in Lines
+            var pixelsPerLine = 40;
+            wheelDeltaPixels = e.deltaY * pixelsPerLine;
+        } else {
+            // DeltaY is already in Pixels
+            wheelDeltaPixels = e.deltaY;
+        }
 
-            var mouseWheelData = {
-                element: element,
-                viewport: cornerstone.getViewport(element),
-                image: cornerstone.getEnabledElement(element).image,
-                direction: direction,
-                pageX: x,
-                pageY: y,
-                imageX: startingCoords.x,
-                imageY: startingCoords.y
-            };
+        var direction = e.deltaY < 0 ? -1 : 1;
 
-            $(element).trigger('CornerstoneToolsMouseWheel', mouseWheelData);
-        }, scrollTimeoutDelay);
+        var mouseWheelData = {
+            element: element,
+            viewport: cornerstone.getViewport(element),
+            image: cornerstone.getEnabledElement(element).image,
+            direction: direction,
+            wheelDeltaPixels: wheelDeltaPixels,
+            pageX: x,
+            pageY: y,
+            imageX: startingCoords.x,
+            imageY: startingCoords.y
+        };
+
+        $(element).trigger('CornerstoneToolsMouseWheel', mouseWheelData);
     }
-
-    var mouseWheelEvents = 'mousewheel DOMMouseScroll';
 
     function enable(element) {
         // Prevent handlers from being attached multiple times
         disable(element);
 
-        $(element).on(mouseWheelEvents, mouseWheel);
+        cornerstoneTools.addWheelListener(element, mouseWheel);
     }
 
     function disable(element) {
-        $(element).unbind(mouseWheelEvents, mouseWheel);
+        cornerstoneTools.removeWheelListener(element, mouseWheel);
     }
 
     // module exports
@@ -1447,6 +1431,8 @@ if (typeof cornerstoneTools === 'undefined') {
     'use strict';
 
     function mouseWheelTool(mouseWheelCallback) {
+        var configuration = {};
+
         var toolInterface = {
             activate: function(element) {
                 $(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);
@@ -1456,7 +1442,9 @@ if (typeof cornerstoneTools === 'undefined') {
             },
             disable: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);},
             enable: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);},
-            deactivate: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);}
+            deactivate: function(element) {$(element).off('CornerstoneToolsMouseWheel', mouseWheelCallback);},
+            getConfiguration: function() { return configuration;},
+            setConfiguration: function(config) {configuration = config;}
         };
         return toolInterface;
     }
@@ -9045,8 +9033,13 @@ Display scroll progress bar across bottom of image.
     }
 
     function mouseWheelCallback(e, eventData) {
-        var images = -eventData.direction;
+        var config = cornerstoneTools.stackScroll.getConfiguration();
+        var pixelsPerImage = config.wheelDeltaPixelsPerImage || 100;
+        var images = eventData.direction * Math.max(1, Math.round(Math.abs(eventData.wheelDeltaPixels) / pixelsPerImage));
         cornerstoneTools.scroll(eventData.element, images);
+
+        // false = causes jquery to preventDefault() and stopPropagation() this event
+        return false;
     }
 
     function dragCallback(e, eventData) {
@@ -9083,6 +9076,19 @@ Display scroll progress bar across bottom of image.
     // module/private exports
     cornerstoneTools.stackScroll = cornerstoneTools.simpleMouseButtonTool(mouseDownCallback);
     cornerstoneTools.stackScrollWheel = cornerstoneTools.mouseWheelTool(mouseWheelCallback);
+
+    var stackScrollWheelConfig = {
+        // Smaller numbers lead to faster scrolling
+        // 100 is the default here because in my empirical tests,
+        // a single tick of my mouse produces a value of 100 pixels       
+        // on Firefox on Windows. This is the largest I noticed in my     
+        // tests. In some cases (e.g. >500 image stacks), the user        
+        // may want to speed up stack scrolling. Lowering this value      
+        // can do this.
+        wheelDeltaPixelsPerImage: 100
+    };
+
+    cornerstoneTools.stackScrollWheel.setConfiguration(stackScrollWheelConfig);
 
     var options = {
         eventData: {
@@ -11696,6 +11702,14 @@ Display scroll progress bar across bottom of image.
 
     'use strict';
 
+    function isNumber(value) {
+        return typeof value === 'number' && !isNaN(value);
+    }
+
+    function isInteger(number) {
+        return number % 1 === 0;
+    }
+
     function scrollToIndex(element, newImageIdIndex) {
         var toolData = cornerstoneTools.getToolState(element, 'stack');
         if (!toolData || !toolData.data || !toolData.data.length) {
@@ -11703,6 +11717,12 @@ Display scroll progress bar across bottom of image.
         }
 
         var stackData = toolData.data[0];
+
+        if (!isNumber(newImageIdIndex)) {
+            throw 'scrollToIndex: index provided is not numeric: ' + newImageIdIndex;
+        } else if (isNumber(newImageIdIndex) && !isInteger(newImageIdIndex)) {
+            throw 'scrollToIndex: index provided is not an integer: ' + newImageIdIndex;
+        }
 
         // Allow for negative indexing
         if (newImageIdIndex < 0) {
@@ -11832,3 +11852,127 @@ Display scroll progress bar across bottom of image.
 })(cornerstone, cornerstoneTools);
  
 // End Source; src/util/setContextToDisplayFontSize.js
+
+// Begin Source: src/util/wheelListeners.js
+(function(cornerstoneTools) {
+
+    'use strict';
+
+    // Thanks to Andrei Kashcha (@anvaka)
+    // https://github.com/anvaka/wheel/blob/master/index.js
+
+    /**
+     * This module unifies handling of mouse whee event across different browsers
+     *
+     * See https://developer.mozilla.org/en-US/docs/Web/Reference/Events/wheel?redirectlocale=en-US&redirectslug=DOM%2FMozilla_event_reference%2Fwheel
+     * for more details
+     *
+     * Usage:
+     *  var addWheelListener = require('wheel').addWheelListener;
+     *  var removeWheelListener = require('wheel').removeWheelListener;
+     *  addWheelListener(domElement, function (e) {
+     *    // mouse wheel event
+     *  });
+     *  removeWheelListener(domElement, function);
+     */
+    // by default we shortcut to 'addEventListener':
+
+    // creates a global "addWheelListener" method
+    // example: addWheelListener( elem, function( e ) { console.log( e.deltaY ); e.preventDefault(); } );
+
+    var prefix = '',
+        _addEventListener,
+        _removeEventListener,
+        support;
+
+    function detectEventModel(window, document) {
+        if (window && window.addEventListener) {
+            _addEventListener = 'addEventListener';
+            _removeEventListener = 'removeEventListener';
+        } else {
+            _addEventListener = 'attachEvent';
+            _removeEventListener = 'detachEvent';
+            prefix = 'on';
+        }
+
+        if (document) {
+            // detect available wheel event
+            support = 'onwheel' in document.createElement('div') ? 'wheel' : // Modern browsers support "wheel"
+                document.onmousewheel !== undefined ? 'mousewheel' : // Webkit and IE support at least "mousewheel"
+                'DOMMouseScroll'; // let's assume that remaining browsers are older Firefox
+        } else {
+            support = 'wheel';
+        }
+    }
+
+    function addWheelListener(elem, callback, useCapture) {
+        detectEventModel(window, document);
+
+        _addWheelListener(elem, support, callback, useCapture);
+
+        // handle MozMousePixelScroll in older Firefox
+        if (support === 'DOMMouseScroll') {
+            _addWheelListener(elem, 'MozMousePixelScroll', callback, useCapture);
+        }
+    }
+
+    function removeWheelListener(elem, callback, useCapture) {
+        detectEventModel(window, document);
+
+        _removeWheelListener(elem, support, callback, useCapture);
+
+        // handle MozMousePixelScroll in older Firefox
+        if (support === 'DOMMouseScroll') {
+            _removeWheelListener(elem, 'MozMousePixelScroll', callback, useCapture);
+        }
+    }
+
+    function _removeWheelListener(elem, eventName, callback, useCapture) {
+        elem[_removeEventListener](prefix + eventName, callback, useCapture || false);
+    }
+
+    function _addWheelListener(elem, eventName, callback, useCapture) {
+        elem[_addEventListener](prefix + eventName, support === 'wheel' ? callback : function(originalEvent) {
+            if (!originalEvent) {
+                originalEvent = window.event;
+            }
+
+            // create a normalized event object
+            var event = {
+                // keep a ref to the original event object
+                originalEvent: originalEvent,
+                target: originalEvent.target || originalEvent.srcElement,
+                type: 'wheel',
+                deltaMode: originalEvent.type === 'MozMousePixelScroll' ? 0 : 1,
+                deltaX: 0,
+                deltaY: 0,
+                deltaZ: 0,
+                preventDefault: function() {
+                    return originalEvent.preventDefault ? originalEvent.preventDefault() : false;
+                }
+            };
+
+            // calculate deltaY (and deltaX) according to the event
+            if (support === 'mousewheel') {
+                event.deltaY = -1 / 40 * originalEvent.wheelDelta;
+                // Webkit also support wheelDeltaX
+                if (originalEvent.wheelDeltaX) {
+                    event.deltaX = -1 / 40 * originalEvent.wheelDeltaX;
+                }
+            } else {
+                event.deltaY = originalEvent.detail;
+            }
+
+            // it's time to fire the callback
+            return callback(event);
+
+        }, useCapture || false);
+    }
+
+    // Module exports
+    cornerstoneTools.addWheelListener = addWheelListener;
+    cornerstoneTools.removeWheelListener = removeWheelListener;
+
+})(cornerstoneTools);
+ 
+// End Source; src/util/wheelListeners.js

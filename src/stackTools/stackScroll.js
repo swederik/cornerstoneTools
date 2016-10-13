@@ -22,8 +22,13 @@
     }
 
     function mouseWheelCallback(e, eventData) {
-        var images = -eventData.direction;
+        var config = cornerstoneTools.stackScroll.getConfiguration();
+        var pixelsPerImage = config.wheelDeltaPixelsPerImage || 100;
+        var images = eventData.direction * Math.max(1, Math.round(Math.abs(eventData.wheelDeltaPixels) / pixelsPerImage));
         cornerstoneTools.scroll(eventData.element, images);
+
+        // false = causes jquery to preventDefault() and stopPropagation() this event
+        return false;
     }
 
     function dragCallback(e, eventData) {
@@ -60,6 +65,19 @@
     // module/private exports
     cornerstoneTools.stackScroll = cornerstoneTools.simpleMouseButtonTool(mouseDownCallback);
     cornerstoneTools.stackScrollWheel = cornerstoneTools.mouseWheelTool(mouseWheelCallback);
+
+    var stackScrollWheelConfig = {
+        // Smaller numbers lead to faster scrolling
+        // 100 is the default here because in my empirical tests,
+        // a single tick of my mouse produces a value of 100 pixels
+        // on Firefox on Windows. This is the largest I noticed in my
+        // tests. In some cases (e.g. >500 image stacks), the user
+        // may want to speed up stack scrolling. Lowering this value
+        // can do this.
+        wheelDeltaPixelsPerImage: 100
+    };
+
+    cornerstoneTools.stackScrollWheel.setConfiguration(stackScrollWheelConfig);
 
     var options = {
         eventData: {
