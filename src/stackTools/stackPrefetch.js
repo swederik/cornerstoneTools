@@ -241,7 +241,7 @@
 
         // Check if we are allowed to cache images in this stack
         if (stack.preventCache === true) {
-            console.warn('A stack that should not be cached was given the stackPrefetch');
+            console.warn('A stack that should not be cached was given to stackPrefetch');
             return;
         }
 

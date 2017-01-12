@@ -2,6 +2,8 @@
 
     'use strict';
 
+    var stackData = {};
+
     /**
      * Displays a Stack
      *
@@ -21,13 +23,25 @@
             throw 'displayStack: No renderer provided';
         }
 
-        if (!stack.imageObjects) {
-            throw 'displayStack: Stack has no Image Objects to render';
-        }
+        renderer.render(element, stack);
 
-        renderer.render(element, stack.imageObjects);
+        stackData[element] = {
+            stack: stack,
+            renderer: renderer
+        };
+    }
+
+    /**
+     * Displays a Stack
+     *
+     * @param element Enabled Cornerstone element
+     * @param stack Instance of the Stack class
+     */
+    function getStackData(element) {
+        return stackData[element];
     }
 
     cornerstoneTools.displayStack = displayStack;
+    cornerstoneTools.getStackData = getStackData;
 
 })(cornerstone, cornerstoneTools);

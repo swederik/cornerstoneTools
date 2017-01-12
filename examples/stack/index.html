@@ -77,7 +77,7 @@ is used by our example image loader-->
   }
 
   function metaDataProvider(type, imageId) {
-      if(type === 'imagePlane') {
+      if (type === 'imagePlane') {
           return imagePlaneMetadata[imageId];
       }
   }
@@ -125,14 +125,22 @@ is used by our example image loader-->
       // Terribly inefficient to keep this in here, but whatever
       cornerstone.loadAndCacheImage(imageId).then(function(image) {
         var PerFrameFunctionalGroupsSequence = image.data.elements['x52009230'];
-        var thisFrame = PerFrameFunctionalGroupsSequence.items[i].dataSet;
+        var index = parseInt(image.imageId.split('?frame=')[1]);
+        var thisFrame = PerFrameFunctionalGroupsSequence.items[index].dataSet;
         var PlanePositionSequence = thisFrame.elements['x00209113'];
         var imagePositionPatientString = PlanePositionSequence.items[0].dataSet.string('x00200032');
+
         var pos = imagePositionPatientString.split('\\').map(function(val) {
           return parseFloat(val);
         })
 
         var imagePositionPatient = new cornerstoneMath.Vector3(pos[0], pos[1], pos[2]);
+
+        var lut = [];
+        lut[0] = [0, 0, 0, 0];
+        lut[1] = [129, 174, 128, 255];
+        
+        cornerstone.pixelDataToFalseColorData(image, lut);
 
         var metadata = {
           imagePlane: {
@@ -153,7 +161,7 @@ is used by our example image loader-->
     imageIds.sort(function(imageId1, imageId2) {
       var imagePlane1 = cornerstoneTools.metaData.get('imagePlane', imageId1);
       var imagePlane2 = cornerstoneTools.metaData.get('imagePlane', imageId2);
-      return imagePlane1.imagePositionPatient.z - imagePlane2.imagePositionPatient.z;
+      return imagePlane2.imagePositionPatient.z - imagePlane1.imagePositionPatient.z;
     });
 
     var imageIdsObj = imageIds.map(function(imageId) {
@@ -183,6 +191,11 @@ is used by our example image loader-->
     var stack = new cornerstoneTools.Stack(imageObjects);
 
     cornerstoneTools.displayStack(element, stack, renderer);
-  }, 10000);
+
+    cornerstoneTools.mouseInput.enable(element);
+    cornerstoneTools.mouseWheelInput.enable(element);
+    cornerstoneTools.stackScroll.activate(element, 1)
+    cornerstoneTools.stackScrollWheel.activate(element);
+  }, 5000);
 </script>
 </html>

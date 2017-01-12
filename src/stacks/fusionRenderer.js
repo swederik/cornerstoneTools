@@ -2,6 +2,10 @@
 
     'use strict';
 
+    function isInteger(x) {
+        return (typeof x === 'number') && (x % 1 === 0);
+    }
+
     var distances = {};
 
     function getImagePositionPatient(imageId) {
@@ -63,28 +67,50 @@
      * @param stackOptions
      */
     function FusionRenderer(stackOptions) {
+        // TODO: Create a base Renderer class and extend from it for the FusionRenderer
         this.stackOptions = stackOptions;
+        this.currentImageIdIndex = 0;
+        this.preventCache = false;
+        this.layerIds = [];
 
-        this.render = function(element, imageObjects) {
+        this.render = function(element, stack) {
             console.log('FusionRenderer render');
-            console.log(this.stackOptions);
-            console.log(element);
 
-            var currentImageIdIndex = 80;
+            var imageObjects = stack.imageObjects;
+
+            // Move this to base Renderer class
+            if (!isInteger(this.currentImageIdIndex)) {
+                throw new Error('FusionRenderer: render - Image ID Index is not an integer');
+            }
+
+            // TODO: Figure out what to do with LoadHandlers in this scenario...
+
             // For the base layer, go to the currentImageIdIndex
             var baseImageObject = imageObjects[0];
-            var currentImage = baseImageObject.images[currentImageIdIndex];
+            var currentImage = baseImageObject.images[this.currentImageIdIndex];
             var currentImageId = currentImage.imageId;
+
+            // Remove this when we move to ES6 and can use arrow functions
+            var layerIds = this.layerIds;
             cornerstone.loadAndCacheImage(currentImageId).then(function(image) {
-                cornerstone.addLayer(element, image);
+                // TODO: Maybe make an Update Or Add layer function?
+                if (layerIds && layerIds[0]) {
+                    var currentLayerId = layerIds[0];
+                    var layer = cornerstone.getLayers(element, currentLayerId);
+                    layer.image = image;
+                } else {
+                    var layerId = cornerstone.addLayer(element, image);
+                    layerIds.push(layerId);
+                }
+
                 cornerstone.updateImage(element);
             });
 
             // Splice out the first image
-            imageObjects.splice(0, 1);
+            var overlayImageObjects = imageObjects.slice(1, imageObjects.length);
 
             // Loop through the remaining 'overlay' image objects
-            imageObjects.forEach(function(imgObj) {
+            overlayImageObjects.forEach(function(imgObj, overlayLayerIndex) {
                 var imageIds = imgObj.images.map(function(image) {
                     return image.imageId;
                 });
@@ -95,7 +121,16 @@
                 }
 
                 cornerstone.loadAndCacheImage(imageId).then(function(image) {
-                    cornerstone.addLayer(element, image);
+                    var layerIndex = overlayLayerIndex + 1;
+                    if (layerIds && layerIds[layerIndex]) {
+                        var currentLayerId = layerIds[layerIndex];
+                        var layer = cornerstone.getLayers(element, currentLayerId);
+                        layer.image = image;
+                    } else {
+                        var layerId = cornerstone.addLayer(element, image);
+                        layerIds.push(layerId);
+                    }
+
                     cornerstone.updateImage(element);
                 });
             });

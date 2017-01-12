@@ -3,15 +3,15 @@
     'use strict';
 
     function scroll(element, images) {
-        var toolData = cornerstoneTools.getToolState(element, 'stack');
-        if (toolData === undefined || toolData.data === undefined || toolData.data.length === 0) {
+        var stackData = cornerstoneTools.getStackData(element);
+        if (!stackData) {
             return;
         }
 
-        var stackData = toolData.data[0];
-
-        var newImageIdIndex = stackData.currentImageIdIndex + images;
-        newImageIdIndex = Math.min(stackData.imageIds.length - 1, newImageIdIndex);
+        var baseImageObject = stackData.stack.imageObjects[0];
+        var numImages = baseImageObject.images.length;
+        var newImageIdIndex = stackData.renderer.currentImageIdIndex + images;
+        newImageIdIndex = Math.min(numImages - 1, newImageIdIndex);
         newImageIdIndex = Math.max(0, newImageIdIndex);
 
         cornerstoneTools.scrollToIndex(element, newImageIdIndex);

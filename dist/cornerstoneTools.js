@@ -1,4 +1,4 @@
-/*! cornerstoneTools - v0.7.9 - 2017-01-11 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
+/*! cornerstoneTools - v0.7.9 - 2017-01-12 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
 // Begin Source: src/header.js
 if (typeof cornerstone === 'undefined') {
     cornerstone = {};
@@ -9166,7 +9166,7 @@ Display scroll progress bar across bottom of image.
 
         // Check if we are allowed to cache images in this stack
         if (stack.preventCache === true) {
-            console.warn('A stack that should not be cached was given the stackPrefetch');
+            console.warn('A stack that should not be cached was given to stackPrefetch');
             return;
         }
 
@@ -9363,6 +9363,8 @@ Display scroll progress bar across bottom of image.
 
     'use strict';
 
+    var stackData = {};
+
     /**
      * Displays a Stack
      *
@@ -9382,14 +9384,26 @@ Display scroll progress bar across bottom of image.
             throw 'displayStack: No renderer provided';
         }
 
-        if (!stack.imageObjects) {
-            throw 'displayStack: Stack has no Image Objects to render';
-        }
+        renderer.render(element, stack);
+        
+        stackData[element] = {
+            stack: stack,
+            renderer: renderer
+        };
+    }
 
-        renderer.render(element, stack.imageObjects);
+    /**
+     * Displays a Stack
+     *
+     * @param element Enabled Cornerstone element
+     * @param stack Instance of the Stack class
+     */
+    function getStackData(element) {
+        return stackData[element];
     }
 
     cornerstoneTools.displayStack = displayStack;
+    cornerstoneTools.getStackData = getStackData;
 
 })(cornerstone, cornerstoneTools);
  
@@ -9399,6 +9413,10 @@ Display scroll progress bar across bottom of image.
 (function(cornerstone, cornerstoneTools) {
 
     'use strict';
+
+    function isInteger(x) {
+        return (typeof x === 'number') && (x % 1 === 0);
+    }
 
     var distances = {};
 
@@ -9461,28 +9479,50 @@ Display scroll progress bar across bottom of image.
      * @param stackOptions
      */
     function FusionRenderer(stackOptions) {
+        // TODO: Create a base Renderer class and extend from it for the FusionRenderer
         this.stackOptions = stackOptions;
+        this.currentImageIdIndex = 0;
+        this.preventCache = false;
+        this.layerIds = [];
 
-        this.render = function(element, imageObjects) {
+        this.render = function(element, stack) {
             console.log('FusionRenderer render');
-            console.log(this.stackOptions);
-            console.log(element);
 
-            var currentImageIdIndex = 80;
+            var imageObjects = stack.imageObjects;
+
+            // Move this to base Renderer class
+            if (!isInteger(this.currentImageIdIndex)) {
+                throw new Error('FusionRenderer: render - Image ID Index is not an integer');
+            }
+
+            // TODO: Figure out what to do with LoadHandlers in this scenario...
+
             // For the base layer, go to the currentImageIdIndex
             var baseImageObject = imageObjects[0];
-            var currentImage = baseImageObject.images[currentImageIdIndex];
+            var currentImage = baseImageObject.images[this.currentImageIdIndex];
             var currentImageId = currentImage.imageId;
+
+            // Remove this when we move to ES6 and can use arrow functions
+            var layerIds = this.layerIds;
             cornerstone.loadAndCacheImage(currentImageId).then(function(image) {
-                cornerstone.addLayer(element, image);
+                // TODO: Maybe make an Update Or Add layer function?
+                if (layerIds && layerIds[0]) {
+                    var currentLayerId = layerIds[0];
+                    var layer = cornerstone.getLayers(element, currentLayerId);
+                    layer.image = image;
+                } else {
+                    var layerId = cornerstone.addLayer(element, image);
+                    layerIds.push(layerId);
+                }
+                
                 cornerstone.updateImage(element);
             });
 
             // Splice out the first image
-            imageObjects.splice(0, 1);
+            var overlayImageObjects = imageObjects.slice(1, imageObjects.length);
 
             // Loop through the remaining 'overlay' image objects
-            imageObjects.forEach(function(imgObj) {
+            overlayImageObjects.forEach(function(imgObj, overlayLayerIndex) {
                 var imageIds = imgObj.images.map(function(image) {
                     return image.imageId;
                 });
@@ -9493,7 +9533,15 @@ Display scroll progress bar across bottom of image.
                 }
 
                 cornerstone.loadAndCacheImage(imageId).then(function(image) {
-                    cornerstone.addLayer(element, image);
+                    var layerIndex = overlayLayerIndex + 1;
+                    if (layerIds && layerIds[layerIndex]) {
+                        var currentLayerId = layerIds[layerIndex];
+                        var layer = cornerstone.getLayers(element, currentLayerId);
+                        layer.image = image;
+                    } else {
+                        var layerId = cornerstone.addLayer(element, image);
+                        layerIds.push(layerId);
+                    }
                     cornerstone.updateImage(element);
                 });
             });
@@ -12122,15 +12170,15 @@ Display scroll progress bar across bottom of image.
     'use strict';
 
     function scroll(element, images) {
-        var toolData = cornerstoneTools.getToolState(element, 'stack');
-        if (toolData === undefined || toolData.data === undefined || toolData.data.length === 0) {
+        var stackData = cornerstoneTools.getStackData(element);
+        if (!stackData) {
             return;
         }
 
-        var stackData = toolData.data[0];
-
-        var newImageIdIndex = stackData.currentImageIdIndex + images;
-        newImageIdIndex = Math.min(stackData.imageIds.length - 1, newImageIdIndex);
+        var baseImageObject = stackData.stack.imageObjects[0];
+        var numImages = baseImageObject.images.length;
+        var newImageIdIndex = stackData.renderer.currentImageIdIndex + images;
+        newImageIdIndex = Math.min(numImages - 1, newImageIdIndex);
         newImageIdIndex = Math.max(0, newImageIdIndex);
 
         cornerstoneTools.scrollToIndex(element, newImageIdIndex);
@@ -12149,96 +12197,41 @@ Display scroll progress bar across bottom of image.
     'use strict';
 
     function scrollToIndex(element, newImageIdIndex) {
-        var toolData = cornerstoneTools.getToolState(element, 'stack');
-        if (!toolData || !toolData.data || !toolData.data.length) {
+        var stackData = cornerstoneTools.getStackData(element);
+        if (!stackData) {
             return;
         }
 
-        var stackData = toolData.data[0];
+        var renderer = stackData.renderer;
 
         // Allow for negative indexing
+        var baseImageObject = stackData.stack.imageObjects[0];
+        var numImages = baseImageObject.images.length;
         if (newImageIdIndex < 0) {
-            newImageIdIndex += stackData.imageIds.length;
+            newImageIdIndex += numImages;
         }
 
-        var startLoadingHandler = cornerstoneTools.loadHandlerManager.getStartLoadHandler();
-        var endLoadingHandler = cornerstoneTools.loadHandlerManager.getEndLoadHandler();
-        var errorLoadingHandler = cornerstoneTools.loadHandlerManager.getErrorLoadingHandler();
-        var viewport = cornerstone.getViewport(element);
-
-        function doneCallback(image) {
-            if (stackData.currentImageIdIndex !== newImageIdIndex) {
-                return;
-            }
-
-            // Check if the element is still enabled in Cornerstone,
-            // if an error is thrown, stop here.
-            try {
-                // TODO: Add 'isElementEnabled' to Cornerstone?
-                cornerstone.getEnabledElement(element);
-            } catch(error) {
-                return;
-            }
-
-            cornerstone.displayImage(element, image, viewport);
-            if (endLoadingHandler) {
-                endLoadingHandler(element);
-            }
-        }
-
-        function failCallback(error) {
-            var imageId = stackData.imageIds[newImageIdIndex];
-            if (errorLoadingHandler) {
-                errorLoadingHandler(element, imageId, error);
-            }
-        }
-
-        if (newImageIdIndex === stackData.currentImageIdIndex) {
+        if (newImageIdIndex === renderer.currentImageIdIndex) {
             return;
         }
 
-        if (startLoadingHandler) {
-            startLoadingHandler(element);
-        }
+        renderer.currentImageIdIndex = newImageIdIndex;
+        renderer.render(element, stackData.stack);
 
-        var eventData = {
-            newImageIdIndex: newImageIdIndex,
-            direction: newImageIdIndex - stackData.currentImageIdIndex
-        };
-
-        stackData.currentImageIdIndex = newImageIdIndex;
-        var newImageId = stackData.imageIds[newImageIdIndex];
-
-        // Retry image loading in cases where previous image promise
-        // was rejected, if the option is set
-        var config = cornerstoneTools.stackScroll.getConfiguration();
-        if (config && config.retryLoadOnScroll === true) {
-            var newImagePromise = cornerstone.imageCache.getImagePromise(newImageId);
-            if (newImagePromise && newImagePromise.state() === 'rejected') {
-                cornerstone.imageCache.removeImagePromise(newImageId);
-            }
-        }
-
-        // Convert the preventCache value in stack data to a boolean
-        var preventCache = !!stackData.preventCache;
-
-        var imagePromise;
-        if (preventCache) {
-            imagePromise = cornerstone.loadImage(newImageId);
-        } else {
-            imagePromise = cornerstone.loadAndCacheImage(newImageId);
-        }
-
-        imagePromise.then(doneCallback, failCallback);
         // Make sure we kick off any changed download request pools
         cornerstoneTools.requestPoolManager.startGrabbing();
+
+        // Fire an event to let the application know that an element was scrolled
+        // to a new image ID index
+        var eventData = {
+            newImageIdIndex: newImageIdIndex,
+        };
 
         $(element).trigger('CornerstoneStackScroll', eventData);
     }
 
     // module exports
     cornerstoneTools.scrollToIndex = scrollToIndex;
-    cornerstoneTools.loadHandlers = {};
 
 })(cornerstone, cornerstoneTools);
  
