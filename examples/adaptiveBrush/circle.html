@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+  <title>Canvas Follow Mouse</title>
+  <style>
+    canvas {
+      border: #333 3px solid; position: relative; border-color: blue;
+      cursor: none;
+    }
+ 
+    body { padding: 42px; }
+  </style>
+  
+  <!-- jquery - included to make things easier to demo, not needed or used by the cornerstone library but
+  is used by our example image loader-->
+  <script src="../jquery.min.js"></script>
+
+  <script src="circle.js"></script>
+</head>
+ 
+<body>
+  <h1>Adaptive Brush 1</h1>
+  <p>This pointer changes its diameter if it overlaps another region.</p>
+  <canvas id="drawDiv" width="512px" height="512px"></canvas>
+ 
+  <script>    
+    
+    var canvasSave;
+    
+    // The adaptive pointer
+    var radiusSet = 25; // Set this value with slider
+    var borderSet = 1;
+    var toleranceSet = 10; // Teh tolerance set in percent
+    
+    var tolerance = Math.round( 255 / 100 * toleranceSet);
+    var radius = radiusSet;
+    
+    var thrMin = 0;
+    var thrMax = 255;
+    
+    var pointerArray;
+    var pointerArrayNextSize;
+    
+    function calcPointer(radius) { 
+      pointerArray = getCircleM1(radius, borderSet);
+      if ( radius<26) {
+        pointerArrayNextSize = getCircleM1(radius+1, borderSet);
+      }
+    }
+    calcPointer(radius); // Calculate initial pointer
+    
+    
+    // The canvas background
+    var canvasElement = document.querySelector("#drawDiv");
+    var ctx = canvasElement.getContext("2d");
+    var canvasWidth = canvasElement.width;
+    var canvasHeight = canvasElement.height;
+    
+    
+    var imageObj = new Image();
+    imageObj.src = 'brushTest.png';
+    //imageObj.src = 'lung.png';
+    var canvasData;
+    var imageWidth = imageObj.width;
+    var imageHeight = imageObj.height;
+    
+    // Calculate the background as an array of 0 and 1
+    imageObj.onload = function() {
+      ctx.drawImage(imageObj, 0, 0, canvasWidth, canvasHeight);
+      canvasSave = ctx.getImageData(0,0,canvasWidth,canvasHeight);
+      var canvasImageData = ctx.getImageData(0,0,canvasWidth,canvasHeight);
+      canvasData = canvasImageData.data;
+
+      // The canvas as array of 0 and 1 of form [y,x]
+      var canvasArray = new Array(canvasHeight);
+      for (var j=0; j<canvasHeight; j++) {
+        canvasArray[j] = new Array(canvasWidth);
+      }
+      var canvasIndex = 0;
+      for (var y=0; y<canvasHeight; y++) {
+        for (var x=0; x<canvasWidth; x++) {
+          var grayValue = 0;
+          greyValue = Math.round(( canvasData[canvasIndex] + canvasData[canvasIndex+1] + canvasData[canvasIndex+2] ) / 3);
+          canvasIndex+=4;
+          canvasArray[y][x] = greyValue;
+        }
+      }
+
+      // This is the offset of the mouse position based on the canvas border
+      var computedStyle = window.getComputedStyle(canvasElement,null);
+      var topBorder=parseInt(computedStyle.getPropertyValue("border-top-width"),10);
+      var leftBorder=parseInt(computedStyle.getPropertyValue("border-left-width"),10);    
+      
+      var mouseX = 0;
+      var mouseY = 0;
+      var oldCenterX = 0;
+      var oldCenterY = 0;
+      
+      function setMousePosition(e) {
+        mouseX = e.pageX - this.offsetLeft - leftBorder;
+        mouseY = e.pageY - this.offsetTop - topBorder;
+        oldCenterX = mouseX;
+        oldCenterY = mouseY;
+      }
+      
+      canvasElement.addEventListener("mousemove", setMousePosition, false);
+      
+      
+      
+      
+      // Draws the pointer with overlap calculation - Used on mouse clicked
+      function varPointer() {
+        var overlapX = 0;
+        var overlapY = 0;
+        var overlapNxt = 0;
+
+        var doneX = false;
+        var doneY = false;
+
+
+        while ( doneX!=true && doneY!=true ) {
+          overlapX = 0;
+          overlapNxt = 1;
+          for (var j=0; j<pointerArray.length; j++) {
+            var yCoord = pointerArray[j][0]+oldCenterY;
+            var xCoord = pointerArray[j][1]+oldCenterX;
+            if ( xCoord>=0 && yCoord>=0 && xCoord<canvasWidth && yCoord<canvasHeight) {
+              
+              //if (canvasArray[yCoord][xCoord]<100) { // Threshold for grey value
+              if ( canvasArray[yCoord][xCoord]>thrMax || canvasArray[yCoord][xCoord]<thrMin ) { // Threshold for grey value
+                overlapX++;
+              }
+            }
+          }
+          
+          // Debug message for seeing the gray values
+          // console.log(canvasArray[oldCenterY][oldCenterX]);
+
+          if ( radius <= radiusSet ) {
+            if ( overlapX==0 ) {
+              overlapNxt = 0;
+              for (var j=0; j<pointerArrayNextSize.length; j++) {
+                var yCoord = pointerArrayNextSize[j][0]+oldCenterY;
+                var xCoord = pointerArrayNextSize[j][1]+oldCenterX;
+                if ( xCoord>=0 && yCoord>=0 && xCoord<canvasWidth && yCoord<canvasHeight) {
+                  //if (canvasArray[yCoord][xCoord]<100) { // Threshold for grey value
+                  if ( canvasArray[yCoord][xCoord]>thrMax || canvasArray[yCoord][xCoord]<thrMin ) { // Threshold for grey value
+                    overlapNxt++;
+                  }
+                }
+              }
+            }
+          } else {
+            overlapNxt = 1;
+          }
+
+          if (overlapX==0 && overlapNxt==0) {
+            radius+=2;
+            calcPointer(radius);
+
+            ctx.fillStyle = "rgba(200,0,0,1)";
+            for (var i=0; i<pointerArrayNextSize.length; i++) {
+              var xCoord = pointerArrayNextSize[i][1]+oldCenterX;
+              var yCoord = pointerArrayNextSize[i][0]+oldCenterY;
+              if ( xCoord>=0 && yCoord>=0 && xCoord<canvasWidth && yCoord<canvasHeight) {
+                ctx.fillRect( xCoord, yCoord, 1, 1 );
+              }
+            }
+          } else if (overlapX==0) {
+            ctx.fillStyle = "rgba(200,0,0,1)";
+            for (var i=0; i<pointerArray.length; i++) {
+              var xCoord = pointerArray[i][1]+oldCenterX;
+              var yCoord = pointerArray[i][0]+oldCenterY;
+              if ( xCoord>=0 && yCoord>=0 && xCoord<canvasWidth && yCoord<canvasHeight) {
+                ctx.fillRect( xCoord, yCoord, 1, 1 );
+              }
+            }
+          } else {
+
+            if (radius>5) {
+              radius-=2;
+            }
+
+            calcPointer(radius);
+            ctx.fillStyle = "rgba(200,0,0,1)";
+            for (var i=0; i<pointerArray.length; i++) {
+              var xCoord = pointerArray[i][1]+oldCenterX;
+              var yCoord = pointerArray[i][0]+oldCenterY;
+              if ( xCoord>=0 && yCoord>=0 && xCoord<canvasWidth && yCoord<canvasHeight) {
+                ctx.fillRect( xCoord, yCoord, 1, 1 );
+              }
+            }
+          }
+
+          if ( oldCenterX<mouseX ) {
+            if ( oldCenterX<(mouseX-15) ) {
+              oldCenterX+=15;
+            } else if ( oldCenterX<(mouseX-5) ) {
+              oldCenterX+=5;
+            } else {
+              oldCenterX++;
+            }
+          } else if ( oldCenterX>mouseX ) {
+            if ( oldCenterX>(mouseX+15) ) {
+              oldCenterX-=15;
+            } else if ( oldCenterX>(mouseX+5) ) {
+              oldCenterX-=5;
+            } else {
+              oldCenterX--;
+            }
+          } else {
+            doneX = true;
+          }
+
+          if ( oldCenterY<mouseY ) {
+            if ( oldCenterY<(mouseY-15) ) {
+              oldCenterY+=15;
+            } else if ( oldCenterY<(mouseY-5) ) {
+              oldCenterY+=5;
+            } else {
+              oldCenterY++;
+            }
+          } else if ( oldCenterY>mouseY ) {
+            if ( oldCenterY>(mouseY+15) ) {
+              oldCenterY-=15;
+            } else if ( oldCenterY>(mouseY+5) ) {
+              oldCenterY-=5;
+            } else {
+              oldCenterY--;
+            }
+          } else {
+            doneY = true;
+          }
+        }
+      }
+      
+      function fixPointer() {
+        ctx.putImageData(canvasSave,0,0);
+
+        var overlapX = 0;
+        var overlapY = 0;
+        
+        ctx.fillStyle = "red";
+        if (mouseX>0 && mouseY>0 && mouseX<canvasWidth && mouseY<canvasHeight) {
+          for (var i=0; i<pointerArray.length; i++) {
+            var xCoord = pointerArray[i][1]+oldCenterX;
+            var yCoord = pointerArray[i][0]+oldCenterY;
+            if ( xCoord>=0 && yCoord>=0 && xCoord<canvasWidth && yCoord<canvasHeight) {
+              ctx.fillRect( xCoord, yCoord, 1, 1 );
+            }
+          }
+        }
+      }
+      
+      var mouseDown = false;
+      $("body").mousedown(function(){
+        mouseDown=true;
+        getGreyValues(mouseX,mouseY,pointerArray,canvasArray);
+      });
+      $("body").mouseup(function(){
+        canvasSave = ctx.getImageData(0,0,canvasWidth,canvasHeight);
+        mouseDown=false;
+        radius = radiusSet;
+        calcPointer(radius);
+      });
+      
+      
+      function update() {
+        if (mouseDown) {
+          varPointer();
+        }
+        else {
+          fixPointer();
+        }
+        requestAnimationFrame(update);
+      }
+      update();
+      
+    }; // End of image ready
+    
+    
+     
+  </script>
+ 
+</body>
+ 
+</html>

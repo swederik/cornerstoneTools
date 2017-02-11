@@ -1,0 +1,144 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- support for mobile touch devices -->
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+  
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../dialogPolyfill.css" rel="stylesheet">
+  <link href="../cornerstone.min.css" rel="stylesheet">
+
+  <style>
+    /* prevents selection when left click dragging */
+    .disable-selection {
+      -moz-user-select: none; -webkit-user-select: none; -ms-user-select:none; user-select:none;
+    }
+    /* prevents cursor from changing to the i bar on the overlays*/
+    .noIbar {
+      cursor:default;
+    } 
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <h1>
+        Adaptive Brush Example
+      </h1>
+      <p>
+        This page contains an example of an adapative segmentation paintbrush tool
+      </p>
+      <a href="../index.html">Go back to the Examples page</a>
+    </div>
+
+    <div class="row">
+
+      <div class="col-xs-9">
+        <div style="width:512px;height:512px;position:relative;display:inline-block;"
+            oncontextmenu="return false"
+            class='cornerstone-enabled-image disable-selection noIbar'
+            unselectable='on'
+            onselectstart='return false;'
+            onmousedown='return false;'>
+          <div id="dicomImage"
+            style="width:512px;height:512px;top:0px;left:0px; position:absolute;">
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-xs-3">
+        <h5>Controls:</h5>
+        <ul>
+          <li>Left click paint</li>
+          <li>Middle Mouse button drag - pan</li>
+          <li>Right click drag - zoom</li>
+        </ul>
+
+        <div class="row">
+          <button id="drawErase" class="btn btn-primary">Erase</button>
+        </div>
+        
+        <div class="row">
+          <label for="radiusSlider">Radius: <span id="valBox">10</span>px</label>
+          <input id="radiusSlider" type="range" min="5" max="200" value="10" steps="1" style="width: 200px"/>
+        </div>
+
+        <div class="row">
+          <button disabled id="downloadSegFile" class="btn btn-link">Download DICOM Segmentation file</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<!-- jquery - included to make things easier to demo, not needed or used by the cornerstone library but
+is used by our example image loader-->
+<script src="../jquery.min.js"></script>
+
+<!-- include the cornerstone library -->
+  <script src="../cornerstone.js"></script>
+<!--<script src="../../../cornerstone/dist/cornerstone.min.js"></script>-->
+  
+<script src="../cornerstoneMath.min.js"></script>
+
+<!-- include the cornerstone tools library -->
+<script src="../../dist/cornerstoneTools.js"></script>
+
+<script src="../dicomParser.js"></script>
+<script src="../cornerstoneWADOImageLoader.js"></script>
+<script src="../cornerstoneWebImageLoader.js"></script>
+
+<!-- include special code for these examples which provides images -->
+<script src="../exampleImageLoader.js"></script>
+
+<script>
+  var radius = 10;
+  
+  var element = $('#dicomImage').get(0);
+  var imageId = 'http://localhost:8000/examples/adaptiveBrush/brushTest.png';
+  //var imageId = 'dicomweb:http://cornerstonetech.org/images/ClearCanvas/DXStudy/1.2.840.113619.2.67.2158294438.16324010109084338.243.dcm';
+
+  var configuration = cornerstoneTools.adaptiveBrush.getConfiguration();
+  configuration.radius = radius;
+  cornerstoneTools.adaptiveBrush.setConfiguration(configuration);
+
+  // image enable the dicomImage element
+  cornerstone.enable(element);
+  
+  cornerstone.loadImage(imageId).then(function(image) {
+    cornerstone.addLayer(element, image);
+    cornerstone.updateImage(element);
+    
+    cornerstoneTools.mouseInput.enable(element);
+    cornerstoneTools.pan.activate(element, 2);
+    cornerstoneTools.zoom.activate(element, 4);
+    
+    cornerstoneTools.adaptiveBrush.activate(element, 1);     
+  });
+
+  $('#drawErase').click(function (e) {
+    var configuration = cornerstoneTools.adaptiveBrush.getConfiguration();
+    if (configuration.draw == 0) {
+      configuration.draw = 1;
+      $('#drawErase').text("Erase");
+    } else {
+      configuration.draw = 0;
+      $('#drawErase').text("Draw");
+    }
+    cornerstoneTools.adaptiveBrush.setConfiguration(configuration);
+  });
+  
+  $('#radiusSlider').on('input', function(){
+    var radius = $('#radiusSlider').val();
+    $('#valBox').text(radius);
+    configuration.radius = radius;
+    cornerstoneTools.adaptiveBrush.setConfiguration(configuration);
+  });
+
+  $('#downloadSegFile').click(function (e) {
+    //var bitArray = cornerstoneTools.adaptiveBrush.getBitArray(element);
+  });
+  
+</script>
+</html>
