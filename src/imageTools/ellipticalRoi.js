@@ -96,7 +96,10 @@
         var config = cornerstoneTools.ellipticalRoi.getConfiguration();
         var context = eventData.canvasContext.canvas.getContext('2d');
         var seriesModule = cornerstone.metaData.get('generalSeriesModule', image.imageId);
-        var modality = seriesModule.modality;
+        var modality;
+        if (seriesModule) {
+            modality = seriesModule.modality;
+        }
 
         context.setTransform(1, 0, 0, 1, 0, 0);
 
@@ -241,7 +244,7 @@
                 var stdDevText = 'StdDev: ' + numberWithCommas(meanStdDev.stdDev.toFixed(2)) + moSuffix;
 
                 // If this image has SUV values to display, concatenate them to the text line
-                if (meanStdDevSUV && meanStdDevSUV.mean !== undefined) {
+                if (meanStdDevSUV && meanStdDevSUV.mean) {
                     var SUVtext = ' SUV: ';
                     meanText += SUVtext + numberWithCommas(meanStdDevSUV.mean.toFixed(2));
                     stdDevText += SUVtext + numberWithCommas(meanStdDevSUV.stdDev.toFixed(2));

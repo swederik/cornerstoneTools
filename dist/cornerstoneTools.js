@@ -1,4 +1,4 @@
-/*! cornerstoneTools - v0.8.3 - 2017-03-26 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
+/*! cornerstoneTools - v0.8.3 - 2017-03-29 | (c) 2014 Chris Hafey | https://github.com/chafey/cornerstoneTools */
 // Begin Source: src/header.js
 if (typeof cornerstone === 'undefined') {
     cornerstone = {};
@@ -2913,6 +2913,12 @@ if (typeof cornerstoneTools === 'undefined') {
             context.shadowOffsetY = config.shadowOffsetY || 1;
         }
 
+        var seriesModule = cornerstone.metaData.get('generalSeriesModule', image.imageId);
+        var modality;
+        if (seriesModule) {
+            modality = seriesModule.modality;
+        }
+
         var toolCoords;
         if (eventData.isTouchEvent === true) {
             toolCoords = cornerstone.pageToPixel(element, eventData.currentPoints.page.x,
@@ -2937,22 +2943,18 @@ if (typeof cornerstoneTools === 'undefined') {
             storedPixels = cornerstone.getStoredPixels(element, toolCoords.x, toolCoords.y, 1, 1);
             var sp = storedPixels[0];
             var mo = sp * eventData.image.slope + eventData.image.intercept;
-            var suv = cornerstoneTools.calculateSUV(eventData.image, sp);
 
-            var modalityTag = 'x00080060';
-            var modality;
-            if (eventData.image.data) {
-                modality = eventData.image.data.string(modalityTag);
-            }
-
+            var modalityPixelValueText = parseFloat(mo.toFixed(2));
             if (modality === 'CT') {
-                text += 'HU: ';
-            }
-
-            // Draw text
-            text += parseFloat(mo.toFixed(2));
-            if (suv) {
-                text += ' SUV: ' + parseFloat(suv.toFixed(2));
+                text += 'HU: ' + modalityPixelValueText;
+            } else if (modality === 'PT') {
+                text += modalityPixelValueText;
+                var suv = cornerstoneTools.calculateSUV(eventData.image, sp);
+                if (suv) {
+                    text += ' SUV: ' + parseFloat(suv.toFixed(2));
+                }
+            } else {
+                text += modalityPixelValueText;
             }
         }
 
@@ -3140,14 +3142,13 @@ if (typeof cornerstoneTools === 'undefined') {
         var lineWidth = cornerstoneTools.toolStyle.getToolWidth();
         var config = cornerstoneTools.ellipticalRoi.getConfiguration();
         var context = eventData.canvasContext.canvas.getContext('2d');
-        context.setTransform(1, 0, 0, 1, 0, 0);
-
-        // Retrieve the image modality from its metadata, if available
-        var modalityTag = 'x00080060';
+        var seriesModule = cornerstone.metaData.get('generalSeriesModule', image.imageId);
         var modality;
-        if (image.data) {
-            modality = image.data.string(modalityTag);
+        if (seriesModule) {
+            modality = seriesModule.modality;
         }
+
+        context.setTransform(1, 0, 0, 1, 0, 0);
 
         // If we have tool data for this element - iterate over each set and draw it
         for (var i = 0; i < toolData.data.length; i++) {
@@ -3290,7 +3291,7 @@ if (typeof cornerstoneTools === 'undefined') {
                 var stdDevText = 'StdDev: ' + numberWithCommas(meanStdDev.stdDev.toFixed(2)) + moSuffix;
 
                 // If this image has SUV values to display, concatenate them to the text line
-                if (meanStdDevSUV && meanStdDevSUV.mean !== undefined) {
+                if (meanStdDevSUV && meanStdDevSUV.mean) {
                     var SUVtext = ' SUV: ';
                     meanText += SUVtext + numberWithCommas(meanStdDevSUV.mean.toFixed(2));
                     stdDevText += SUVtext + numberWithCommas(meanStdDevSUV.stdDev.toFixed(2));
@@ -4989,14 +4990,10 @@ if (typeof cornerstoneTools === 'undefined') {
         var lineWidth = cornerstoneTools.toolStyle.getToolWidth();
         var config = cornerstoneTools.rectangleRoi.getConfiguration();
         var context = eventData.canvasContext.canvas.getContext('2d');
-        context.setTransform(1, 0, 0, 1, 0, 0);
+        var seriesModule = cornerstone.metaData.get('generalSeriesModule', image.imageId);
+        var modality = seriesModule.modality;
 
-        // Retrieve the image modality from its metadata, if available
-        var modalityTag = 'x00080060';
-        var modality;
-        if (image.data) {
-            modality = image.data.string(modalityTag);
-        }
+        context.setTransform(1, 0, 0, 1, 0, 0);
 
         // If we have tool data for this element - iterate over each set and draw it
         for (var i = 0; i < toolData.data.length; i++) {
@@ -11130,9 +11127,9 @@ Display scroll progress bar across bottom of image.
 // Begin Source: src/util/calculateEllipseStatistics.js
 (function(cornerstoneTools) {
 
-   'use strict';
-   
-   function calculateEllipseStatistics(sp, ellipse) {
+    'use strict';
+
+    function calculateEllipseStatistics(sp, ellipse) {
         // TODO: Get a real statistics library here that supports large counts
 
         var sum = 0;
@@ -11198,39 +11195,42 @@ Display scroll progress bar across bottom of image.
             return;
         }
 
-        // if no dicom data set, return
-        if (image.data === undefined) {
+        var patientStudyModule = cornerstone.metaData.get('patientStudyModule', image.imageId);
+        var seriesModule = cornerstone.metaData.get('generalSeriesModule', image.imageId);
+        if (!patientStudyModule || !seriesModule) {
             return;
         }
 
+        var modality = seriesModule.modality;
+
         // image must be PET
-        if (image.data.string('x00080060') !== 'PT') {
+        if (modality !== 'PT') {
             return;
         }
 
         var modalityPixelValue = storedPixelValue * image.slope + image.intercept;
 
-        var patientWeight = image.data.floatString('x00101030'); // in kg
-        if (patientWeight === undefined) {
+        var patientWeight = patientStudyModule.patientWeight; // in kg
+        if (!patientWeight) {
             return;
         }
 
-        var petSequence = image.data.elements.x00540016;
-        if (petSequence === undefined) {
+        var petSequenceModule = cornerstone.metaData.get('petIsotopeModule', image.imageId);
+        if (!petSequenceModule) {
             return;
         }
 
-        petSequence = petSequence.items[0].dataSet;
-        var startTime = dicomParser.parseTM(petSequence.string('x00181072'));
-        var totalDose = petSequence.floatString('x00181074');
-        var halfLife = petSequence.floatString('x00181075');
-        var seriesAcquisitionTime = dicomParser.parseTM(image.data.string('x00080031'));
+        var radiopharmaceuticalInfo = petSequenceModule.radiopharmaceuticalInfo;
+        var startTime = radiopharmaceuticalInfo.radiopharmaceuticalStartTime;
+        var totalDose = radiopharmaceuticalInfo.radionuclideTotalDose;
+        var halfLife = radiopharmaceuticalInfo.radionuclideHalfLife;
+        var seriesAcquisitionTime = seriesModule.seriesTime;
 
         if (!startTime || !totalDose || !halfLife || !seriesAcquisitionTime) {
             return;
         }
 
-        var acquisitionTimeInSeconds = fracToDec(seriesAcquisitionTime.fractionalSeconds) + seriesAcquisitionTime.seconds + seriesAcquisitionTime.minutes * 60 + seriesAcquisitionTime.hours * 60 * 60;
+        var acquisitionTimeInSeconds = fracToDec(seriesAcquisitionTime.fractionalSeconds || 0) + seriesAcquisitionTime.seconds + seriesAcquisitionTime.minutes * 60 + seriesAcquisitionTime.hours * 60 * 60;
         var injectionStartTimeInSeconds = fracToDec(startTime.fractionalSeconds) + startTime.seconds + startTime.minutes * 60 + startTime.hours * 60 * 60;
         var durationInSeconds = acquisitionTimeInSeconds - injectionStartTimeInSeconds;
         var correctedDose = totalDose * Math.exp(-durationInSeconds * Math.log(2) / halfLife);
