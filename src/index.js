@@ -31,6 +31,7 @@ export { default as drawArrow } from './util/drawArrow';
 export { default as copyPoints } from './util/copyPoints';
 export { default as calculateSUV } from './util/calculateSUV';
 export { default as calculateEllipseStatistics } from './util/calculateEllipseStatistics';
+export { default as packBitArray } from './util/packBitArray.js';
 
 export { default as probeTool4D } from './timeSeriesTools/probeTool4D';
 export { default as incrementTimePoint } from './timeSeriesTools/incrementTimePoint';
