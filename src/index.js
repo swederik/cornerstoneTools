@@ -148,4 +148,6 @@ export { zoom,
          zoomTouchPinch,
          zoomTouchDrag } from './imageTools/zoom';
 
+export { overlay } from './overlayTools/overlay.js';
+
 export { default as version } from './version';
