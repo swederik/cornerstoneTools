@@ -57,7 +57,8 @@ export default class FusionRenderer {
 
         if (!imageId) {
           if (layer) {
-            layer.image = undefined;
+            layer.options = layer.options || {};
+            layer.options.visible = false;
           }
 
           return;
@@ -65,6 +66,7 @@ export default class FusionRenderer {
 
         cornerstone.loadAndCacheImage(imageId).then((image) => {
           if (layer) {
+            layer.options.visible = true;
             layer.image = image;
           } else {
             const layerId = cornerstone.addLayer(element, image, imgObj.options);

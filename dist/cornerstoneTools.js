@@ -15912,7 +15912,8 @@ var FusionRenderer = function () {
 
           if (!imageId) {
             if (layer) {
-              layer.image = undefined;
+              layer.options = layer.options || {};
+              layer.options.visible = false;
             }
 
             return;
@@ -15920,6 +15921,7 @@ var FusionRenderer = function () {
 
           cornerstone.loadAndCacheImage(imageId).then(function (image) {
             if (layer) {
+              layer.options.visible = true;
               layer.image = image;
             } else {
               var _layerId = cornerstone.addLayer(element, image, imgObj.options);
