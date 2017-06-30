@@ -1,4 +1,4 @@
-/*! cornerstone-tools - 0.9.0 - 2017-06-28 | (c) 2017 Chris Hafey | https://github.com/chafey/cornerstoneTools */
+/*! cornerstone-tools - 0.9.0 - 2017-06-30 | (c) 2017 Chris Hafey | https://github.com/chafey/cornerstoneTools */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("cornerstone-core"), require("cornerstone-math"), require("hammerjs"));
@@ -15901,19 +15901,26 @@ var FusionRenderer = function () {
         // Loop through the remaining 'overlay' image stacks
         overlayImageStacks.forEach(function (imgObj, overlayLayerIndex) {
           var imageId = _this.findImageFn(imgObj.imageIds, currentImageId, minDistance);
+          var layerIndex = overlayLayerIndex + 1;
+          var currentLayerId = void 0;
+          var layer = void 0;
+
+          if (_this.layerIds && _this.layerIds[layerIndex]) {
+            currentLayerId = _this.layerIds[layerIndex];
+            layer = cornerstone.getLayer(element, currentLayerId);
+          }
 
           if (!imageId) {
+            if (layer) {
+              layer.image = undefined;
+            }
+
             return;
           }
 
           cornerstone.loadAndCacheImage(imageId).then(function (image) {
-            var layerIndex = overlayLayerIndex + 1;
-
-            if (_this.layerIds && _this.layerIds[layerIndex]) {
-              var _currentLayerId = _this.layerIds[layerIndex];
-              var _layer = cornerstone.getLayer(element, _currentLayerId);
-
-              _layer.image = image;
+            if (layer) {
+              layer.image = image;
             } else {
               var _layerId = cornerstone.addLayer(element, image, imgObj.options);
 

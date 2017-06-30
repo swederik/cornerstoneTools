@@ -46,18 +46,25 @@ export default class FusionRenderer {
       // Loop through the remaining 'overlay' image stacks
       overlayImageStacks.forEach((imgObj, overlayLayerIndex) => {
         const imageId = this.findImageFn(imgObj.imageIds, currentImageId, minDistance);
+        const layerIndex = overlayLayerIndex + 1;
+        let currentLayerId;
+        let layer;
+
+        if (this.layerIds && this.layerIds[layerIndex]) {
+          currentLayerId = this.layerIds[layerIndex];
+          layer = cornerstone.getLayer(element, currentLayerId);
+        }
 
         if (!imageId) {
+          if (layer) {
+            layer.image = undefined;
+          }
+
           return;
         }
 
         cornerstone.loadAndCacheImage(imageId).then((image) => {
-          const layerIndex = overlayLayerIndex + 1;
-
-          if (this.layerIds && this.layerIds[layerIndex]) {
-            const currentLayerId = this.layerIds[layerIndex];
-            const layer = cornerstone.getLayer(element, currentLayerId);
-
+          if (layer) {
             layer.image = image;
           } else {
             const layerId = cornerstone.addLayer(element, image, imgObj.options);
