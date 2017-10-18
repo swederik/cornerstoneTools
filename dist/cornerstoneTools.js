@@ -14259,6 +14259,15 @@ Object.defineProperty(exports, 'metaData', {
          }
 });
 
+var _externalModules = __webpack_require__(0);
+
+Object.defineProperty(exports, 'externals', {
+         enumerable: true,
+         get: function get() {
+                  return _interopRequireDefault(_externalModules).default;
+         }
+});
+
 var _index = __webpack_require__(86);
 
 Object.defineProperty(exports, 'referenceLines', {

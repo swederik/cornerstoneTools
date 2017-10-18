@@ -1,4 +1,5 @@
 export { default as metaData } from './metaData.js';
+export { default as externals } from './externalModules.js';
 
 export { default as referenceLines } from './referenceLines/index.js';
 export { default as orientation } from './orientation/index.js';
