@@ -1,14 +1,14 @@
-import * as dicomParser from '../../dicomParser/src/index.js';
-import * as cornerstoneMath from '../../cornerstoneMath/src/index.js';
 const $ = window.$;
 const Hammer = window.Hammer;
-let cornerstone;
+import * as cornerstoneMath from '../../cornerstoneMath/src/index.js';
 
-function storeCornerstone(cs) {
+let cornerstone = window.cornerstone;
+
+function storeCornerstone (cs) {
   cornerstone = cs;
 }
 
-function getCornerstone() {
+function getCornerstone () {
   return cornerstone;
 }
 
