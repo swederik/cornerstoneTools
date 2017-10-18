@@ -1,14 +1,14 @@
-/*! cornerstone-tools - 0.9.1 - 2017-10-16 | (c) 2017 Chris Hafey | https://github.com/chafey/cornerstoneTools */
+/*! cornerstone-tools - 0.9.1 - 2017-10-18 | (c) 2017 Chris Hafey | https://github.com/chafey/cornerstoneTools */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("cornerstone-core"), require("cornerstone-math"), require("hammerjs"), require("jquery"));
+		module.exports = factory(require("cornerstone-math"), require("hammerjs"), require("jquery"));
 	else if(typeof define === 'function' && define.amd)
-		define("cornerstoneTools", ["cornerstone-core", "cornerstone-math", "hammerjs", "jquery"], factory);
+		define("cornerstoneTools", ["cornerstone-math", "hammerjs", "jquery"], factory);
 	else if(typeof exports === 'object')
-		exports["cornerstoneTools"] = factory(require("cornerstone-core"), require("cornerstone-math"), require("hammerjs"), require("jquery"));
+		exports["cornerstoneTools"] = factory(require("cornerstone-math"), require("hammerjs"), require("jquery"));
 	else
-		root["cornerstoneTools"] = factory(root["cornerstone"], root["cornerstoneMath"], root["Hammer"], root["$"]);
-})(this, function(__WEBPACK_EXTERNAL_MODULE_115__, __WEBPACK_EXTERNAL_MODULE_116__, __WEBPACK_EXTERNAL_MODULE_117__, __WEBPACK_EXTERNAL_MODULE_118__) {
+		root["cornerstoneTools"] = factory(root["cornerstoneMath"], root["Hammer"], root["$"]);
+})(this, function(__WEBPACK_EXTERNAL_MODULE_115__, __WEBPACK_EXTERNAL_MODULE_116__, __WEBPACK_EXTERNAL_MODULE_117__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -87,21 +87,17 @@ return /******/ (function(modules) { // webpackBootstrap
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.cornerstoneMath = exports.cornerstone = exports.Hammer = exports.$ = undefined;
+exports.cornerstoneMath = exports.getCornerstone = exports.setCornerstone = exports.cornerstone = exports.Hammer = exports.$ = undefined;
 
-var _jquery = __webpack_require__(118);
+var _jquery = __webpack_require__(117);
 
 var _jquery2 = _interopRequireDefault(_jquery);
 
-var _hammerjs = __webpack_require__(117);
+var _hammerjs = __webpack_require__(116);
 
 var _hammerjs2 = _interopRequireDefault(_hammerjs);
 
-var _cornerstoneCore = __webpack_require__(115);
-
-var cornerstone = _interopRequireWildcard(_cornerstoneCore);
-
-var _cornerstoneMath = __webpack_require__(116);
+var _cornerstoneMath = __webpack_require__(115);
 
 var cornerstoneMath = _interopRequireWildcard(_cornerstoneMath);
 
@@ -109,9 +105,21 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+var cornerstone = void 0;
+
+function setCornerstone(cs) {
+  exports.cornerstone = cornerstone = cs;
+}
+
+function getCornerstone() {
+  return cornerstone;
+}
+
 exports.$ = _jquery2.default;
 exports.Hammer = _hammerjs2.default;
 exports.cornerstone = cornerstone;
+exports.setCornerstone = setCornerstone;
+exports.getCornerstone = getCornerstone;
 exports.cornerstoneMath = cornerstoneMath;
 
 /***/ }),
@@ -8481,7 +8489,9 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-exports.default = function (element, filename) {
+exports.default = function (element, filename, mimetype) {
+  // setting the default value for mimetype to image/png
+  mimetype = mimetype || "image/png";
   var canvas = (0, _externalModules.$)(element).find('canvas').get(0);
 
   // Thanks to Ken Fyrstenber
@@ -8494,7 +8504,7 @@ exports.default = function (element, filename) {
   // / convert canvas content to data-uri for link. When download
   // / attribute is set the content pointed to by link will be
   // / pushed as 'download' in HTML5 capable browsers
-  lnk.href = canvas.toDataURL();
+  lnk.href = canvas.toDataURL(mimetype);
 
   // / create a 'fake' click-event to trigger the download
   if (document.createEvent) {
@@ -15784,12 +15794,6 @@ module.exports = __WEBPACK_EXTERNAL_MODULE_116__;
 /***/ (function(module, exports) {
 
 module.exports = __WEBPACK_EXTERNAL_MODULE_117__;
-
-/***/ }),
-/* 118 */
-/***/ (function(module, exports) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE_118__;
 
 /***/ })
 /******/ ]);
