@@ -7,6 +7,17 @@ let isClickEvent = true;
 let preventClickTimeout;
 const clickDelay = 200;
 
+const EVENTS = {
+  MOUSE_DOWN: 'cornerstonetoolsmousedown',
+  MOUSE_DOWN_ACTIVATE: 'cornerstonetoolsmousedownactivate',
+  DOUBLE_CLICK: 'cornerstonetoolsmousedoubleclick',
+  MOUSE_DRAG: 'cornerstonetoolsmousedrag',
+  MOUSE_MOVE: 'cornerstonetoolsmousemove',
+  MOUSE_CLICK: 'cornerstonetoolsmouseclick',
+  MOUSE_UP: 'cornerstonetoolsmouseup'
+};
+
+
 function getEventWhich (event) {
   if (typeof event.buttons !== 'number') {
     return event.which;
@@ -32,7 +43,7 @@ function preventClickHandler () {
 function mouseDoubleClick (e) {
   const cornerstone = external.cornerstone;
   const element = e.currentTarget;
-  const eventType = 'CornerstoneToolsMouseDoubleClick';
+  const eventType = EVENTS.DOUBLE_CLICK;
 
   const startPoints = {
     page: external.cornerstoneMath.point.pageToPoint(e),
@@ -70,10 +81,10 @@ function mouseDown (e) {
 
   const cornerstone = external.cornerstone;
   const element = e.currentTarget;
-  const eventType = 'CornerstoneToolsMouseDown';
+  const eventType = EVENTS.MOUSE_DOWN;
 
   // Prevent CornerstoneToolsMouseMove while mouse is down
-  external.$(element).off('mousemove', mouseMove);
+  element.removeEventListener('mousemove', mouseMove);
 
   const startPoints = {
     page: external.cornerstoneMath.point.pageToPoint(e),
@@ -107,15 +118,15 @@ function mouseDown (e) {
 
   if (eventPropagated) {
     // No tools responded to this event, create a new tool
-    eventData.type = 'CornerstoneToolsMouseDownActivate';
-    triggerEvent(eventData.element, 'CornerstoneToolsMouseDownActivate', eventData);
+    eventData.type = EVENTS.MOUSE_DOWN_ACTIVATE;
+    triggerEvent(eventData.element, EVENTS.MOUSE_DOWN_ACTIVATE, eventData);
   }
 
   const whichMouseButton = getEventWhich(e);
 
   function onMouseMove (e) {
     // Calculate our current points in page and image coordinates
-    const eventType = 'CornerstoneToolsMouseDrag';
+    const eventType = EVENTS.MOUSE_DRAG;
     const currentPoints = {
       page: external.cornerstoneMath.point.pageToPoint(e),
       image: cornerstone.pageToPixel(element, e.pageX, e.pageY),
@@ -165,10 +176,10 @@ function mouseDown (e) {
     // Cancel the timeout preventing the click event from triggering
     clearTimeout(preventClickTimeout);
 
-    let eventType = 'CornerstoneToolsMouseUp';
+    let eventType = EVENTS.MOUSE_UP;
 
     if (isClickEvent) {
-      eventType = 'CornerstoneToolsMouseClick';
+      eventType = EVENTS.MOUSE_CLICK;
     }
 
     // Calculate our current points in page and image coordinates
@@ -206,16 +217,16 @@ function mouseDown (e) {
 
     triggerEvent(eventData.element, eventType, eventData);
 
-    external.$(document).off('mousemove', onMouseMove);
-    external.$(document).off('mouseup', onMouseUp);
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
 
-    external.$(eventData.element).on('mousemove', mouseMove);
+    eventData.element.addEventListener('mousemove', mouseMove);
 
     isClickEvent = true;
   }
 
-  external.$(document).on('mousemove', onMouseMove);
-  external.$(document).on('mouseup', onMouseUp);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 
   return pauseEvent(e);
 }
@@ -223,7 +234,7 @@ function mouseDown (e) {
 function mouseMove (e) {
   const cornerstone = external.cornerstone;
   const element = e.currentTarget;
-  const eventType = 'CornerstoneToolsMouseMove';
+  const eventType = EVENTS.MOUSE_MOVE;
 
   const startPoints = {
     page: external.cornerstoneMath.point.pageToPoint(e),
@@ -279,18 +290,18 @@ function mouseMove (e) {
 }
 
 function disable (element) {
-  external.$(element).off('mousedown', mouseDown);
-  external.$(element).off('mousemove', mouseMove);
-  external.$(element).off('dblclick', mouseDoubleClick);
+  element.removeEventListener('mousedown', mouseDown);
+  element.removeEventListener('mousemove', mouseMove);
+  element.removeEventListener('dblclick', mouseDoubleClick);
 }
 
 function enable (element) {
   // Prevent handlers from being attached multiple times
   disable(element);
 
-  external.$(element).on('mousedown', mouseDown);
-  external.$(element).on('mousemove', mouseMove);
-  external.$(element).on('dblclick', mouseDoubleClick);
+  element.addEventListener('mousedown', mouseDown);
+  element.addEventListener('mousemove', mouseMove);
+  element.addEventListener('dblclick', mouseDoubleClick);
 }
 
 // Module exports

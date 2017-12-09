@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import requestPoolManager from '../requestPool/requestPoolManager.js';
 import loadHandlerManager from '../stateManagement/loadHandlerManager.js';
@@ -283,8 +284,8 @@ function enable (element) {
 
   prefetch(element);
 
-  element.removeEventListener('cornerstonenewimage', onImageUpdated);
-  element.addEventListener('cornerstonenewimage', onImageUpdated);
+  element.removeEventListener(EVENTS.NEW_IMAGE, onImageUpdated);
+  element.addEventListener(EVENTS.NEW_IMAGE, onImageUpdated);
 
   const promiseRemovedHandler = getPromiseRemovedHandler(element);
 
@@ -294,7 +295,7 @@ function enable (element) {
 
 function disable (element) {
   clearTimeout(resetPrefetchTimeout);
-  element.removeEventListener('cornerstonenewimage', onImageUpdated);
+  element.removeEventListener(EVENTS.NEW_IMAGE, onImageUpdated);
 
   const promiseRemovedHandler = getPromiseRemovedHandler(element);
 

@@ -1,9 +1,7 @@
-import external from '../externalModules.js';
-
-export default function (element, filename, mimetype) {
+export default function saveAs (element, filename, mimetype) {
   // Setting the default value for mimetype to image/png
   mimetype = mimetype || 'image/png';
-  const canvas = external.$(element).find('canvas').get(0);
+  const canvas = element.querySelectorAll('canvas').get(0);
 
   // Thanks to Ken Fyrstenber
   // http://stackoverflow.com/questions/18480474/how-to-save-an-image-from-canvas

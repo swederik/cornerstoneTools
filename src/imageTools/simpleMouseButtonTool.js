@@ -1,26 +1,26 @@
-import external from '../externalModules.js';
+import EVENTS from '../events.js';
 
 export default function (mouseDownCallback) {
   let configuration = {};
 
   const toolInterface = {
     activate (element, mouseButtonMask, options) {
-      external.$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+      element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
       const eventData = {
         mouseButtonMask,
         options
       };
 
-      external.$(element).on('CornerstoneToolsMouseDownActivate', eventData, mouseDownCallback);
+      element.addEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, eventData, mouseDownCallback);
     },
     disable (element) {
-      external.$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+      element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
     },
     enable (element) {
-      external.$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+      element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
     },
     deactivate (element) {
-      external.$(element).off('CornerstoneToolsMouseDownActivate', mouseDownCallback);
+      element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
     },
     getConfiguration () {
       return configuration;

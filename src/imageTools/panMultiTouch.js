@@ -1,7 +1,8 @@
 import external from '../externalModules.js';
 import multiTouchDragTool from './multiTouchDragTool.js';
 
-function touchPanCallback (e, eventData) {
+function touchPanCallback (e) {
+  const eventData = e.detail;
   const config = panMultiTouch.getConfiguration();
 
   if (config && config.testPointers(eventData)) {

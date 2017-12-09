@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import mouseButtonTool from './mouseButtonTool.js';
 import touchTool from './touchTool.js';
@@ -89,7 +90,9 @@ function pointNearTool (element, data, coords) {
   return (distanceToPoint < 10) || insideBoundingBox;
 }
 
-function onImageRendered (e, eventData) {
+function onImageRendered (e) {
+  const eventData = e.detail;
+
   // If we have no toolData for this element, return immediately as there is nothing to do
   const toolData = getToolState(eventData.element, toolType);
 
@@ -144,7 +147,8 @@ function onImageRendered (e, eventData) {
   }
 }
 
-function doubleClickCallback (e, eventData) {
+function doubleClickCallback (e) {
+  const eventData = e.detail;
   const cornerstone = external.cornerstone;
   const element = eventData.element;
   let data;
@@ -163,10 +167,10 @@ function doubleClickCallback (e, eventData) {
       mouseButtonMask: e.data.mouseButtonMask
     };
 
-    external.$(element).on('CornerstoneToolsMouseMove', mouseButtonData, textMarker.mouseMoveCallback);
-    external.$(element).on('CornerstoneToolsMouseDown', mouseButtonData, textMarker.mouseDownCallback);
-    external.$(element).on('CornerstoneToolsMouseDownActivate', mouseButtonData, textMarker.mouseDownActivateCallback);
-    external.$(element).on('CornerstoneToolsMouseDoubleClick', mouseButtonData, textMarker.mouseDoubleClickCallback);
+    element.addEventListener(EVENTS.MOUSE_MOVE, mouseButtonData, textMarker.mouseMoveCallback);
+    element.addEventListener(EVENTS.MOUSE_DOWN, mouseButtonData, textMarker.mouseDownCallback);
+    element.addEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseButtonData, textMarker.mouseDownActivateCallback);
+    element.addEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseButtonData, textMarker.mouseDoubleClickCallback);
   }
 
   if (e.data && e.data.mouseButtonMask && !isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
@@ -189,10 +193,10 @@ function doubleClickCallback (e, eventData) {
       data.active = true;
       cornerstone.updateImage(element);
 
-      external.$(element).off('CornerstoneToolsMouseMove', textMarker.mouseMoveCallback);
-      external.$(element).off('CornerstoneToolsMouseDown', textMarker.mouseDownCallback);
-      external.$(element).off('CornerstoneToolsMouseDownActivate', textMarker.mouseDownActivateCallback);
-      external.$(element).off('CornerstoneToolsMouseDoubleClick', textMarker.mouseDoubleClickCallback);
+      element.removeEventListener(EVENTS.MOUSE_MOVE, textMarker.mouseMoveCallback);
+      element.removeEventListener(EVENTS.MOUSE_DOWN, textMarker.mouseDownCallback);
+      element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, textMarker.mouseDownActivateCallback);
+      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, textMarker.mouseDoubleClickCallback);
       // Allow relabelling via a callback
       config.changeTextCallback(data, eventData, doneChangingTextCallback);
 
@@ -205,7 +209,8 @@ function doubleClickCallback (e, eventData) {
   return false; // False = causes jquery to preventDefault() and stopPropagation() this event
 }
 
-function touchPressCallback (e, eventData) {
+function touchPressCallback (e) {
+  const eventData = e.detail;
   const cornerstone = external.cornerstone;
   const element = eventData.element;
   let data;
@@ -220,11 +225,11 @@ function touchPressCallback (e, eventData) {
     data.active = false;
     cornerstone.updateImage(element);
 
-    external.$(element).on('CornerstoneToolsTouchDrag', textMarkerTouch.touchMoveCallback);
-    external.$(element).on('CornerstoneToolsTouchStartActive', textMarkerTouch.touchDownActivateCallback);
-    external.$(element).on('CornerstoneToolsTouchStart', textMarkerTouch.touchStartCallback);
-    external.$(element).on('CornerstoneToolsTap', textMarkerTouch.tapCallback);
-    external.$(element).on('CornerstoneToolsTouchPress', textMarkerTouch.pressCallback);
+    element.addEventListener(EVENTS.TOUCH_DRAG, textMarkerTouch.touchMoveCallback);
+    element.addEventListener(EVENTS.TOUCH_START_ACTIVE, textMarkerTouch.touchDownActivateCallback);
+    element.addEventListener(EVENTS.TOUCH_START, textMarkerTouch.touchStartCallback);
+    element.addEventListener(EVENTS.TAP, textMarkerTouch.tapCallback);
+    element.addEventListener(EVENTS.TOUCH_PRESS, textMarkerTouch.pressCallback);
   }
 
   const config = textMarker.getConfiguration();
@@ -241,11 +246,11 @@ function touchPressCallback (e, eventData) {
     eventData.handlePressed.active = true;
     cornerstone.updateImage(element);
 
-    external.$(element).off('CornerstoneToolsTouchDrag', textMarkerTouch.touchMoveCallback);
-    external.$(element).off('CornerstoneToolsTouchStartActive', textMarkerTouch.touchDownActivateCallback);
-    external.$(element).off('CornerstoneToolsTouchStart', textMarkerTouch.touchStartCallback);
-    external.$(element).off('CornerstoneToolsTap', textMarkerTouch.tapCallback);
-    external.$(element).off('CornerstoneToolsTouchPress', textMarkerTouch.pressCallback);
+    element.removeEventListener(EVENTS.TOUCH_DRAG, textMarkerTouch.touchMoveCallback);
+    element.removeEventListener(EVENTS.TOUCH_START_ACTIVE, textMarkerTouch.touchDownActivateCallback);
+    element.removeEventListener(EVENTS.TOUCH_START, textMarkerTouch.touchStartCallback);
+    element.removeEventListener(EVENTS.TAP, textMarkerTouch.tapCallback);
+    element.removeEventListener(EVENTS.TOUCH_PRESS, textMarkerTouch.pressCallback);
 
     // Allow relabelling via a callback
     config.changeTextCallback(eventData.handlePressed, eventData, doneChangingTextCallback);
@@ -261,11 +266,11 @@ function touchPressCallback (e, eventData) {
       data.active = true;
       cornerstone.updateImage(element);
 
-      external.$(element).off('CornerstoneToolsTouchDrag', textMarkerTouch.touchMoveCallback);
-      external.$(element).off('CornerstoneToolsTouchStartActive', textMarkerTouch.touchDownActivateCallback);
-      external.$(element).off('CornerstoneToolsTouchStart', textMarkerTouch.touchStartCallback);
-      external.$(element).off('CornerstoneToolsTap', textMarkerTouch.tapCallback);
-      external.$(element).off('CornerstoneToolsTouchPress', textMarkerTouch.pressCallback);
+      element.removeEventListener(EVENTS.TOUCH_DRAG, textMarkerTouch.touchMoveCallback);
+      element.removeEventListener(EVENTS.TOUCH_START_ACTIVE, textMarkerTouch.touchDownActivateCallback);
+      element.removeEventListener(EVENTS.TOUCH_START, textMarkerTouch.touchStartCallback);
+      element.removeEventListener(EVENTS.TAP, textMarkerTouch.tapCallback);
+      element.removeEventListener(EVENTS.TOUCH_PRESS, textMarkerTouch.pressCallback);
       // Allow relabelling via a callback
       config.changeTextCallback(data, eventData, doneChangingTextCallback);
 

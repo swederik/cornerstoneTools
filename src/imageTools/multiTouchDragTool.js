@@ -1,21 +1,21 @@
-import external from '../externalModules.js';
+import EVENTS from '../events.js';
 
 export default function (touchDragCallback, options) {
   let configuration = {};
-  let events = 'CornerstoneToolsMultiTouchDrag';
+  let events = EVENTS.MULTI_TOUCH_DRAG;
 
   if (options && options.fireOnTouchStart === true) {
-    events += ' CornerstoneToolsMultiTouchStart';
+    events = `${EVENTS.MULTI_TOUCH_DRAG} ${EVENTS.MULTI_TOUCH_START}`;
   }
 
-  const toolInterface = {
+  return {
     activate (element) {
-      external.$(element).off(events, touchDragCallback);
+      element.removeEventListener(events, touchDragCallback);
 
       if (options && options.eventData) {
-        external.$(element).on(events, options.eventData, touchDragCallback);
+        element.addEventListener(events, options.eventData, touchDragCallback);
       } else {
-        external.$(element).on(events, touchDragCallback);
+        element.addEventListener(events, touchDragCallback);
       }
 
       if (options && options.activateCallback) {
@@ -23,19 +23,19 @@ export default function (touchDragCallback, options) {
       }
     },
     disable (element) {
-      external.$(element).off(events, touchDragCallback);
+      element.removeEventListener(events, touchDragCallback);
       if (options && options.disableCallback) {
         options.disableCallback(element);
       }
     },
     enable (element) {
-      external.$(element).off(events, touchDragCallback);
+      element.removeEventListener(events, touchDragCallback);
       if (options && options.enableCallback) {
         options.enableCallback(element);
       }
     },
     deactivate (element) {
-      external.$(element).off(events, touchDragCallback);
+      element.removeEventListener(events, touchDragCallback);
       if (options && options.deactivateCallback) {
         options.deactivateCallback(element);
       }
@@ -47,7 +47,4 @@ export default function (touchDragCallback, options) {
       configuration = config;
     }
   };
-
-
-  return toolInterface;
 }

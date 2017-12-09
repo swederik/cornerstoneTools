@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import copyPoints from '../util/copyPoints.js';
 import pauseEvent from '../util/pauseEvent.js';
@@ -57,7 +58,7 @@ function onTouch (e) {
     };
     currentPoints.canvas = cornerstone.pixelToCanvas(element, currentPoints.image);
 
-    eventType = 'CornerstoneToolsTap';
+    eventType = EVENTS.TAP;
     eventData = {
       event: e,
       viewport: cornerstone.getViewport(element),
@@ -86,7 +87,7 @@ function onTouch (e) {
     };
     currentPoints.canvas = cornerstone.pixelToCanvas(element, currentPoints.image);
 
-    eventType = 'CornerstoneToolsDoubleTap';
+    eventType = EVENTS.DOUBLE_TAP;
     eventData = {
       event: e,
       viewport: cornerstone.getViewport(element),
@@ -125,7 +126,7 @@ function onTouch (e) {
     };
     startPoints.canvas = cornerstone.pixelToCanvas(element, startPoints.image);
 
-    eventType = 'CornerstoneToolsTouchPinch';
+    eventType = EVENTS.TOUCH_PINCH;
     eventData = {
       event: e,
       startPoints,
@@ -160,9 +161,9 @@ function onTouch (e) {
       };
       startPoints.canvas = cornerstone.pixelToCanvas(element, startPoints.image);
 
-      eventType = 'CornerstoneToolsTouchStart';
+      eventType = EVENTS.TOUCH_START;
       if (e.originalEvent.touches.length > 1) {
-        eventType = 'CornerstoneToolsMultiTouchStart';
+        eventType = EVENTS.MULTI_TOUCH_START;
       }
 
       eventData = {
@@ -184,7 +185,7 @@ function onTouch (e) {
 
         // No current tools responded to the drag action.
         // Create new tool measurement
-        eventType = 'CornerstoneToolsTouchStartActive';
+        eventType = EVENTS.TOUCH_START_ACTIVE;
         if (e.originalEvent.touches.length > 1) {
           eventType = 'CornerstoneToolsMultiTouchStartActive';
         }
@@ -214,7 +215,7 @@ function onTouch (e) {
       };
       currentPoints.canvas = cornerstone.pixelToCanvas(element, startPoints.image);
 
-      eventType = 'CornerstoneToolsTouchPress';
+      eventType = EVENTS.TOUCH_PRESS;
       eventData = {
         event: e,
         viewport: cornerstone.getViewport(element),
@@ -248,7 +249,7 @@ function onTouch (e) {
       };
       startPoints.canvas = cornerstone.pixelToCanvas(element, startPoints.image);
 
-      eventType = 'CornerstoneToolsTouchEnd';
+      eventType = EVENTS.TOUCH_END;
 
       eventData = {
         event: e,
@@ -310,9 +311,9 @@ function onTouch (e) {
       clearTimeout(pressTimeout);
     }
 
-    eventType = 'CornerstoneToolsTouchDrag';
+    eventType = EVENTS.TOUCH_DRAG;
     if (e.pointers.length > 1) {
-      eventType = 'CornerstoneToolsMultiTouchDrag';
+      eventType = EVENTS.MULTI_TOUCH_DRAG;
     }
 
     eventData = {
@@ -379,7 +380,7 @@ function onTouch (e) {
       canvas: external.cornerstoneMath.point.subtract(currentPoints.canvas, lastPoints.canvas)
     };
 
-    eventType = 'CornerstoneToolsDragEnd';
+    eventType = EVENTS.DRAG_END;
 
     eventData = {
       event: e.srcEvent,
@@ -412,7 +413,7 @@ function onTouch (e) {
 
     lastRotation = e.rotation;
 
-    eventType = 'CornerstoneToolsTouchRotate';
+    eventType = EVENTS.TOUCH_ROTATE;
     eventData = {
       event: e.srcEvent,
       viewport: cornerstone.getViewport(element),
@@ -472,14 +473,15 @@ function enable (element) {
   mc.on('tap doubletap panstart panmove panend pinchstart pinchmove rotatemove', onTouch);
 
   preventGhostClick.enable(element);
-  external.$(element).on('touchstart touchend', onTouch);
-  external.$(element).data('hammer', mc);
+  element.addEventListener('touchstart touchend', onTouch);
+  element.dataset.hammer = mc;
 }
 
 function disable (element) {
   preventGhostClick.disable(element);
-  external.$(element).off('touchstart touchend', onTouch);
-  const mc = external.$(element).data('hammer');
+  element.removeEventListener('touchstart touchend', onTouch);
+
+  const mc = element.dataset.hammer;
 
   if (mc) {
     mc.off('tap doubletap panstart panmove panend pinchmove rotatemove', onTouch);

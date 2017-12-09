@@ -1,5 +1,3 @@
-import external from '../externalModules.js';
-
 /**
  * Trigger a CustomEvent
  *
@@ -20,14 +18,6 @@ export default function triggerEvent (el, type, detail = null) {
   } else {
     event = document.createEvent('CustomEvent');
     event.initCustomEvent(type.toLocaleLowerCase(), true, true, detail);
-  }
-
-  // TODO: remove jQuery event triggers
-  const jqEvent = external.$.Event(type, detail);
-
-  external.$(el).trigger(jqEvent, detail);
-  if (jqEvent.isImmediatePropagationStopped()) {
-    return false;
   }
 
   return el.dispatchEvent(event);

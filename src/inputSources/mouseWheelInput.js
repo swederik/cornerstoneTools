@@ -1,6 +1,8 @@
 import external from '../externalModules.js';
 import triggerEvent from '../util/triggerEvent.js';
 
+const EVENT_MOUSE_WHEEL = 'cornerstonetoolsmousewheel';
+
 function mouseWheel (e) {
   // !!!HACK/NOTE/WARNING!!!
   // For some reason I am getting mousewheel and DOMMouseScroll events on my
@@ -66,7 +68,7 @@ function mouseWheel (e) {
     imageY: startingCoords.y
   };
 
-  triggerEvent(element, 'CornerstoneToolsMouseWheel', mouseWheelData);
+  triggerEvent(element, EVENT_MOUSE_WHEEL, mouseWheelData);
 }
 
 const mouseWheelEvents = 'mousewheel DOMMouseScroll';
@@ -75,11 +77,11 @@ function enable (element) {
   // Prevent handlers from being attached multiple times
   disable(element);
 
-  external.$(element).on(mouseWheelEvents, mouseWheel);
+  element.addEventListener(mouseWheelEvents, mouseWheel);
 }
 
 function disable (element) {
-  external.$(element).unbind(mouseWheelEvents, mouseWheel);
+  element.removeEventListener(mouseWheelEvents, mouseWheel);
 }
 
 // Module exports

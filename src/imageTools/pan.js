@@ -1,25 +1,33 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import simpleMouseButtonTool from './simpleMouseButtonTool.js';
 import touchDragTool from './touchDragTool.js';
 import isMouseButtonEnabled from '../util/isMouseButtonEnabled.js';
 
-function mouseUpCallback (e, eventData) {
-  external.$(eventData.element).off('CornerstoneToolsMouseDrag', dragCallback);
-  external.$(eventData.element).off('CornerstoneToolsMouseUp', mouseUpCallback);
-  external.$(eventData.element).off('CornerstoneToolsMouseClick', mouseUpCallback);
+function mouseUpCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
+  element.removeEventListener(EVENTS.MOUSE_DRAG, dragCallback);
+  element.removeEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+  element.removeEventListener(EVENTS.MOUSE_CLICK, mouseUpCallback);
 }
 
-function mouseDownCallback (e, eventData) {
+function mouseDownCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
   if (isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
-    external.$(eventData.element).on('CornerstoneToolsMouseDrag', dragCallback);
-    external.$(eventData.element).on('CornerstoneToolsMouseUp', mouseUpCallback);
-    external.$(eventData.element).on('CornerstoneToolsMouseClick', mouseUpCallback);
+    element.addEventListener(EVENTS.MOUSE_DRAG, dragCallback);
+    element.addEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+    element.addEventListener(EVENTS.MOUSE_CLICK, mouseUpCallback);
 
     return false; // False = causes jquery to preventDefault() and stopPropagation() this event
   }
 }
 
-function dragCallback (e, eventData) {
+function dragCallback (e) {
+  const eventData = e.detail;
 
   // FIXME: Copied from Cornerstone src/internal/calculateTransform.js, should be exposed from there.
   let widthScale = eventData.viewport.scale;

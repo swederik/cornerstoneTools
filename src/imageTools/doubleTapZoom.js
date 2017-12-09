@@ -5,7 +5,9 @@ function fitToWindowStrategy (eventData) {
   external.cornerstone.fitToWindow(eventData.element);
 }
 
-function doubleTapCallback (e, eventData) {
+function doubleTapCallback (e) {
+  const eventData = e.detail;
+
   doubleTapZoom.strategy(eventData);
 
   return false; // False = causes jquery to preventDefault() and stopPropagation() this event

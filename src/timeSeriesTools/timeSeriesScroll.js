@@ -1,4 +1,4 @@
-import external from '../externalModules.js';
+import EVENTS from '../events.js';
 import simpleMouseButtonTool from '../imageTools/simpleMouseButtonTool.js';
 import touchDragTool from '../imageTools/touchDragTool.js';
 import mouseWheelTool from '../imageTools/mouseWheelTool.js';
@@ -6,13 +6,19 @@ import incrementTimePoint from './incrementTimePoint.js';
 import isMouseButtonEnabled from '../util/isMouseButtonEnabled.js';
 import { getToolState } from '../stateManagement/toolState.js';
 
-function mouseUpCallback (e, eventData) {
-  external.$(eventData.element).off('CornerstoneToolsMouseDrag', mouseDragCallback);
-  external.$(eventData.element).off('CornerstoneToolsMouseUp', mouseUpCallback);
-  external.$(eventData.element).off('CornerstoneToolsMouseClick', mouseUpCallback);
+function mouseUpCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
+  element.removeEventListener(EVENTS.MOUSE_DRAG, mouseDragCallback);
+  element.removeEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+  element.removeEventListener(EVENTS.MOUSE_CLICK, mouseUpCallback);
 }
 
-function mouseDownCallback (e, eventData) {
+function mouseDownCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
   if (isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
 
     const mouseDragEventData = {
@@ -20,16 +26,20 @@ function mouseDownCallback (e, eventData) {
       options: e.data.options
     };
 
-    external.$(eventData.element).on('CornerstoneToolsMouseDrag', mouseDragEventData, mouseDragCallback);
-    external.$(eventData.element).on('CornerstoneToolsMouseUp', mouseUpCallback);
-    external.$(eventData.element).on('CornerstoneToolsMouseClick', mouseUpCallback);
+    // TODO: Fix jQuery eventData
+    element.addEventListener(EVENTS.MOUSE_DRAG, mouseDragEventData, mouseDragCallback);
+    element.addEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+    element.addEventListener(EVENTS.MOUSE_CLICK, mouseUpCallback);
     e.stopImmediatePropagation();
 
     return false;
   }
 }
 
-function mouseDragCallback (e, eventData) {
+function mouseDragCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
   e.data.deltaY += eventData.deltaPoints.page.y;
 
   const toolData = getToolState(eventData.element, 'timeSeries');
@@ -40,7 +50,7 @@ function mouseDragCallback (e, eventData) {
 
   const timeSeriesData = toolData.data[0];
 
-  let pixelsPerTimeSeries = external.$(eventData.element).height() / timeSeriesData.stacks.length;
+  let pixelsPerTimeSeries = element.offsetHeight / timeSeriesData.stacks.length;
 
   if (e.data.options !== undefined && e.data.options.timeSeriesScrollSpeed !== undefined) {
     pixelsPerTimeSeries = e.data.options.timeSeriesScrollSpeed;
@@ -57,7 +67,8 @@ function mouseDragCallback (e, eventData) {
   return false; // False = cases jquery to preventDefault() and stopPropagation() this event
 }
 
-function mouseWheelCallback (e, eventData) {
+function mouseWheelCallback (e) {
+  const eventData = e.detail;
   const images = -eventData.direction;
 
   incrementTimePoint(eventData.element, images);

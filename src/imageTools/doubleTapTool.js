@@ -1,21 +1,21 @@
-import external from '../externalModules.js';
+import EVENTS from '../events.js';
 
 export default function (doubleTapCallback) {
   return {
     activate (element) {
-      external.$(element).off('CornerstoneToolsDoubleTap', doubleTapCallback);
+      element.removeEventListener(EVENTS.DOUBLE_TAP, doubleTapCallback);
       const eventData = {};
 
-      external.$(element).on('CornerstoneToolsDoubleTap', eventData, doubleTapCallback);
+      element.addEventListener(EVENTS.DOUBLE_TAP, eventData, doubleTapCallback);
     },
     disable (element) {
-      external.$(element).off('CornerstoneToolsDoubleTap', doubleTapCallback);
+      element.removeEventListener(EVENTS.DOUBLE_TAP, doubleTapCallback);
     },
     enable (element) {
-      external.$(element).off('CornerstoneToolsDoubleTap', doubleTapCallback);
+      element.removeEventListener(EVENTS.DOUBLE_TAP, doubleTapCallback);
     },
     deactivate (element) {
-      external.$(element).off('CornerstoneToolsDoubleTap', doubleTapCallback);
+      element.removeEventListener(EVENTS.DOUBLE_TAP, doubleTapCallback);
     }
   };
 }

@@ -1,10 +1,10 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import simpleMouseButtonTool from './simpleMouseButtonTool.js';
 import isMouseButtonEnabled from '../util/isMouseButtonEnabled.js';
 import mouseWheelTool from './mouseWheelTool.js';
 import touchPinchTool from './touchPinchTool.js';
 import touchDragTool from './touchDragTool.js';
-
 
 let startPoints;
 
@@ -200,24 +200,32 @@ function zoomToCenterStrategy (eventData, ticks) {
   external.cornerstone.setViewport(element, viewport);
 }
 
-function mouseUpCallback (e, eventData) {
-  external.$(eventData.element).off('CornerstoneToolsMouseDrag', dragCallback);
-  external.$(eventData.element).off('CornerstoneToolsMouseUp', mouseUpCallback);
-  external.$(eventData.element).off('CornerstoneToolsMouseClick', mouseUpCallback);
+function mouseUpCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
+  element.removeEventListener(EVENTS.MOUSE_DRAG, dragCallback);
+  element.removeEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+  element.removeEventListener(EVENTS.MOUSE_CLICK, mouseUpCallback);
 }
 
-function mouseDownCallback (e, eventData) {
+function mouseDownCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
   if (isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
     startPoints = eventData.startPoints; // Used for translateStrategy
-    external.$(eventData.element).on('CornerstoneToolsMouseDrag', dragCallback);
-    external.$(eventData.element).on('CornerstoneToolsMouseUp', mouseUpCallback);
-    external.$(eventData.element).on('CornerstoneToolsMouseClick', mouseUpCallback);
+    element.addEventListener(EVENTS.MOUSE_DRAG, dragCallback);
+    element.addEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+    element.addEventListener(EVENTS.MOUSE_CLICK, mouseUpCallback);
 
     return false; // False = cases jquery to preventDefault() and stopPropagation() this event
   }
 }
 
-function dragCallback (e, eventData) {
+function dragCallback (e) {
+  const eventData = e.detail;
+
   if (!eventData.deltaPoints.page.y) {
     return false;
   }
@@ -229,7 +237,8 @@ function dragCallback (e, eventData) {
   return false; // False = causes jquery to preventDefault() and stopPropagation() this event
 }
 
-function mouseWheelCallback (e, eventData) {
+function mouseWheelCallback (e) {
+  const eventData = e.detail;
   let ticks = -eventData.direction / 4;
 
   // Allow inversion of the mouse wheel scroll via a configuration option
@@ -244,7 +253,8 @@ function mouseWheelCallback (e, eventData) {
   external.cornerstone.setViewport(eventData.element, viewport);
 }
 
-function touchPinchCallback (e, eventData) {
+function touchPinchCallback (e) {
+  const eventData = e.detail;
   const cornerstone = external.cornerstone;
   const config = zoom.getConfiguration();
   const viewport = eventData.viewport;

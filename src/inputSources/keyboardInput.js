@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import triggerEvent from '../util/triggerEvent.js';
 
@@ -27,10 +28,9 @@ function keyPress (e) {
   keyPressData.currentPoints.canvas = cornerstone.pixelToCanvas(element, keyPressData.currentPoints.image);
 
   const keyPressEvents = {
-    keydown: 'CornerstoneToolsKeyDown',
-    keypress: 'CornerstoneToolsKeyPress',
-    keyup: 'CornerstoneToolsKeyUp'
-
+    keydown: EVENTS.KEY_DOWN,
+    keypress: EVENTS.KEY_PRESS,
+    keyup: EVENTS.KEY_UP
   };
 
   triggerEvent(element, keyPressEvents[e.type], keyPressData);
@@ -47,13 +47,13 @@ function enable (element) {
   // Prevent handlers from being attached multiple times
   disable(element);
 
-  external.$(element).on(keyboardEvent, keyPress);
-  external.$(element).on('mousemove', mouseMove);
+  element.addEventListener(keyboardEvent, keyPress);
+  element.addEventListener('mousemove', mouseMove);
 }
 
 function disable (element) {
-  external.$(element).off(keyboardEvent, keyPress);
-  external.$(element).off('mousemove', mouseMove);
+  element.removeEventListener(keyboardEvent, keyPress);
+  element.removeEventListener('mousemove', mouseMove);
 }
 
 // Module exports

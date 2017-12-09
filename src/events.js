@@ -1,0 +1,31 @@
+const EVENTS = {
+  MOUSE_DOWN: 'cornerstonetoolsmousedown',
+  MOUSE_DOWN_ACTIVATE: 'cornerstonetoolsmousedownactivate',
+  DOUBLE_CLICK: 'cornerstonetoolsmousedoubleclick',
+  MOUSE_DRAG: 'cornerstonetoolsmousedrag',
+  MOUSE_MOVE: 'cornerstonetoolsmousemove',
+  MOUSE_CLICK: 'cornerstonetoolsmouseclick',
+  MOUSE_UP: 'cornerstonetoolsmouseup',
+  IMAGE_RENDERED: 'cornerstoneimagerendered',
+  MULTI_TOUCH_DRAG: 'CornerstoneToolsMultiTouchDrag',
+  MULTI_TOUCH_START: 'CornerstoneToolsMultiTouchStart',
+  TOUCH_DRAG: 'cornerstonetoolstouchdrag',
+  TOUCH_PINCH: 'cornerstonetoolstouchpinch',
+  TOUCH_PRESS: 'cornerstonetoolstouchpress',
+  TOUCH_END: 'cornerstonetoolstouchend',
+  DRAG_END: 'cornerstonetoolsdragend',
+  TAP: 'cornerstonetoolstap',
+  MEASUREMENT_ADDED: 'CornerstoneToolsMeasurementAdded',
+  MEASUREMENT_MODIFIED: 'CornerstoneToolsMeasurementModified',
+  DOUBLE_TAP: 'CornerstoneToolsDoubleTap',
+  TOUCH_START: 'CornerstoneToolsTouchStart',
+  TOOL_DEACTIVATED: 'CornerstoneToolsToolDeactivated',
+  TOUCH_ROTATE: 'CornerstoneToolsTouchRotate',
+  CLIP_STOPPED: 'CornerstoneToolsClipStopped',
+  KEY_DOWN: 'CornerstoneToolsKeyDown',
+  KEY_PRESS: 'CornerstoneToolsKeyPress',
+  KEY_UP: 'CornerstoneToolsKeyUp',
+  NEW_IMAGE: 'cornerstonenewimage'
+};
+
+export default EVENTS;

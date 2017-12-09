@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import loadHandlerManager from '../stateManagement/loadHandlerManager.js';
 import { addToolState, getToolState, clearToolState } from '../stateManagement/toolState.js';
@@ -7,7 +8,9 @@ import convertToVector3 from '../util/convertToVector3.js';
 
 const toolType = 'crosshairs';
 
-function chooseLocation (e, eventData) {
+function chooseLocation (e) {
+  const eventData = e.detail;
+
   e.stopImmediatePropagation(); // Prevent CornerstoneToolsTouchStartActive from killing any press events
 
   // If we have no toolData for this element, return immediately as there is nothing to do
@@ -109,23 +112,29 @@ function chooseLocation (e, eventData) {
   });
 }
 
-function mouseUpCallback (e, eventData) {
-  external.$(eventData.element).off('CornerstoneToolsMouseDrag', mouseDragCallback);
-  external.$(eventData.element).off('CornerstoneToolsMouseUp', mouseUpCallback);
+function mouseUpCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
+  element.removeEventListener(EVENTS.MOUSE_DRAG, mouseDragCallback);
+  element.removeEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
 }
 
-function mouseDownCallback (e, eventData) {
+function mouseDownCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
   if (isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
-    external.$(eventData.element).on('CornerstoneToolsMouseDrag', mouseDragCallback);
-    external.$(eventData.element).on('CornerstoneToolsMouseUp', mouseUpCallback);
-    chooseLocation(e, eventData);
+    element.addEventListener(EVENTS.MOUSE_DRAG, mouseDragCallback);
+    element.addEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+    chooseLocation(e);
 
     return false; // False = cases jquery to preventDefault() and stopPropagation() this event
   }
 }
 
-function mouseDragCallback (e, eventData) {
-  chooseLocation(e, eventData);
+function mouseDragCallback (e) {
+  chooseLocation(e);
 
   return false; // False = causes jquery to preventDefault() and stopPropagation() this event
 }
@@ -142,14 +151,14 @@ function enable (element, mouseButtonMask, synchronizationContext) {
     synchronizationContext
   });
 
-  external.$(element).off('CornerstoneToolsMouseDown', mouseDownCallback);
+  element.removeEventListener(EVENTS.MOUSE_DOWN, mouseDownCallback);
 
-  external.$(element).on('CornerstoneToolsMouseDown', eventData, mouseDownCallback);
+  element.addEventListener(EVENTS.MOUSE_DOWN, eventData, mouseDownCallback);
 }
 
 // Disables the reference line tool for the given element
 function disable (element) {
-  external.$(element).off('CornerstoneToolsMouseDown', mouseDownCallback);
+  element.removeEventListener(EVENTS.MOUSE_DOWN, mouseDownCallback);
 }
 
 // Module/private exports
@@ -160,21 +169,27 @@ const crosshairs = {
   disable
 };
 
-function dragEndCallback (e, eventData) {
-  external.$(eventData.element).off('CornerstoneToolsTouchDrag', dragCallback);
-  external.$(eventData.element).off('CornerstoneToolsDragEnd', dragEndCallback);
+function dragEndCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
+  element.removeEventListener(EVENTS.TOUCH_DRAG, dragCallback);
+  element.removeEventListener(EVENTS.DRAG_END, dragEndCallback);
 }
 
-function dragStartCallback (e, eventData) {
-  external.$(eventData.element).on('CornerstoneToolsTouchDrag', dragCallback);
-  external.$(eventData.element).on('CornerstoneToolsDragEnd', dragEndCallback);
-  chooseLocation(e, eventData);
+function dragStartCallback (e) {
+  const eventData = e.detail;
+  const element = eventData.element;
+
+  element.addEventListener(EVENTS.TOUCH_DRAG, dragCallback);
+  element.addEventListener(EVENTS.DRAG_END, dragEndCallback);
+  chooseLocation(e);
 
   return false;
 }
 
-function dragCallback (e, eventData) {
-  chooseLocation(e, eventData);
+function dragCallback (e) {
+  chooseLocation(e);
 
   return false; // False = causes jquery to preventDefault() and stopPropagation() this event
 }
@@ -187,14 +202,14 @@ function enableTouch (element, synchronizationContext) {
     synchronizationContext
   });
 
-  external.$(element).off('CornerstoneToolsTouchStart', dragStartCallback);
+  element.removeEventListener(EVENTS.TOUCH_START, dragStartCallback);
 
-  external.$(element).on('CornerstoneToolsTouchStart', dragStartCallback);
+  element.addEventListener(EVENTS.TOUCH_START, dragStartCallback);
 }
 
 // Disables the reference line tool for the given element
 function disableTouch (element) {
-  external.$(element).off('CornerstoneToolsTouchStart', dragStartCallback);
+  element.removeEventListener(EVENTS.TOUCH_START, dragStartCallback);
 }
 
 const crosshairsTouch = {
