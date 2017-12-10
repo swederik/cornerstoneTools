@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import triggerEvent from '../util/triggerEvent.js';
 
 // This object manages a collection of measurements
@@ -11,6 +12,6 @@ export default function () {
   this.set = function (samples) {
     that.samples = samples;
     // Fire event
-    triggerEvent(that, 'CornerstoneLineSampleUpdated');
+    triggerEvent(that, EVENTS.LINE_SAMPLE_UPDATED);
   };
 }

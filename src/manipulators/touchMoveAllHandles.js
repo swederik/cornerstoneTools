@@ -51,7 +51,7 @@ export default function (touchEventData, data, toolData, toolType, deleteIfHandl
     element.removeEventListener(EVENTS.TOUCH_PINCH, touchEndCallback);
     element.removeEventListener(EVENTS.TOUCH_PRESS, touchEndCallback);
     element.removeEventListener(EVENTS.TOUCH_END, touchEndCallback);
-    element.removeEventListener(EVENTS.DRAG_END, touchEndCallback);
+    element.removeEventListener(EVENTS.TOUCH_DRAG_END, touchEndCallback);
     element.removeEventListener(EVENTS.TAP, touchEndCallback);
 
     // If any handle is outside the image, delete the tool data
@@ -71,7 +71,7 @@ export default function (touchEventData, data, toolData, toolType, deleteIfHandl
   element.addEventListener(EVENTS.TOUCH_PINCH, touchEndCallback);
   element.addEventListener(EVENTS.TOUCH_PRESS, touchEndCallback);
   element.addEventListener(EVENTS.TOUCH_END, touchEndCallback);
-  element.addEventListener(EVENTS.DRAG_END, touchEndCallback);
+  element.addEventListener(EVENTS.TOUCH_DRAG_END, touchEndCallback);
   element.addEventListener(EVENTS.TAP, touchEndCallback);
 
   return true;

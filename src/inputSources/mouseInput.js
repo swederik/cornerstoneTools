@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import external from '../externalModules.js';
 import copyPoints from '../util/copyPoints.js';
 import pauseEvent from '../util/pauseEvent.js';
@@ -6,17 +7,6 @@ import triggerEvent from '../util/triggerEvent.js';
 let isClickEvent = true;
 let preventClickTimeout;
 const clickDelay = 200;
-
-const EVENTS = {
-  MOUSE_DOWN: 'cornerstonetoolsmousedown',
-  MOUSE_DOWN_ACTIVATE: 'cornerstonetoolsmousedownactivate',
-  DOUBLE_CLICK: 'cornerstonetoolsmousedoubleclick',
-  MOUSE_DRAG: 'cornerstonetoolsmousedrag',
-  MOUSE_MOVE: 'cornerstonetoolsmousemove',
-  MOUSE_CLICK: 'cornerstonetoolsmouseclick',
-  MOUSE_UP: 'cornerstonetoolsmouseup'
-};
-
 
 function getEventWhich (event) {
   if (typeof event.buttons !== 'number') {

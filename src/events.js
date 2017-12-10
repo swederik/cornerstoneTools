@@ -1,31 +1,48 @@
 const EVENTS = {
+  // Events from Cornerstone Core
+  IMAGE_RENDERED: 'cornerstoneimagerendered',
+  NEW_IMAGE: 'cornerstonenewimage',
+  IMAGE_CACHE_PROMISE_REMOVED: 'cornerstoneimagecachepromiseremoved',
+  ELEMENT_DISABLED: 'cornerstoneelementdisabled',
+
+  // Mouse events
   MOUSE_DOWN: 'cornerstonetoolsmousedown',
+  MOUSE_UP: 'cornerstonetoolsmouseup',
   MOUSE_DOWN_ACTIVATE: 'cornerstonetoolsmousedownactivate',
-  DOUBLE_CLICK: 'cornerstonetoolsmousedoubleclick',
   MOUSE_DRAG: 'cornerstonetoolsmousedrag',
   MOUSE_MOVE: 'cornerstonetoolsmousemove',
   MOUSE_CLICK: 'cornerstonetoolsmouseclick',
-  MOUSE_UP: 'cornerstonetoolsmouseup',
-  IMAGE_RENDERED: 'cornerstoneimagerendered',
-  MULTI_TOUCH_DRAG: 'CornerstoneToolsMultiTouchDrag',
-  MULTI_TOUCH_START: 'CornerstoneToolsMultiTouchStart',
-  TOUCH_DRAG: 'cornerstonetoolstouchdrag',
-  TOUCH_PINCH: 'cornerstonetoolstouchpinch',
-  TOUCH_PRESS: 'cornerstonetoolstouchpress',
+  MOUSE_DOUBLE_CLICK: 'cornerstonetoolsmousedoubleclick',
+  MOUSE_WHEEL: 'cornerstonetoolsmousewheel',
+
+  // Touch events
+  TOUCH_START: 'cornerstonetoolstouchstart',
   TOUCH_END: 'cornerstonetoolstouchend',
-  DRAG_END: 'cornerstonetoolsdragend',
+  TOUCH_DRAG: 'cornerstonetoolstouchdrag',
+  TOUCH_DRAG_END: 'cornerstonetoolstouchdragend',
+  TOUCH_PINCH: 'cornerstonetoolstouchpinch',
+  TOUCH_ROTATE: 'cornerstonetoolstouchrotate',
+  TOUCH_PRESS: 'cornerstonetoolstouchpress',
   TAP: 'cornerstonetoolstap',
-  MEASUREMENT_ADDED: 'CornerstoneToolsMeasurementAdded',
-  MEASUREMENT_MODIFIED: 'CornerstoneToolsMeasurementModified',
-  DOUBLE_TAP: 'CornerstoneToolsDoubleTap',
-  TOUCH_START: 'CornerstoneToolsTouchStart',
-  TOOL_DEACTIVATED: 'CornerstoneToolsToolDeactivated',
-  TOUCH_ROTATE: 'CornerstoneToolsTouchRotate',
-  CLIP_STOPPED: 'CornerstoneToolsClipStopped',
-  KEY_DOWN: 'CornerstoneToolsKeyDown',
-  KEY_PRESS: 'CornerstoneToolsKeyPress',
-  KEY_UP: 'CornerstoneToolsKeyUp',
-  NEW_IMAGE: 'cornerstonenewimage'
+  DOUBLE_TAP: 'cornerstonetoolsdoubletap',
+  MULTI_TOUCH_START: 'cornerstonetoolsmultitouchstart',
+  MULTI_TOUCH_START_ACTIVE: 'cornerstonetoolsmultitouchstartactive',
+  MULTI_TOUCH_DRAG: 'cornerstonetoolsmultitouchdrag',
+
+  // Keyboard events
+  KEY_DOWN: 'cornerstonetoolskeydown',
+  KEY_UP: 'cornerstonetoolskeyup',
+  KEY_PRESS: 'cornerstonetoolskeypress',
+
+  // Measurement / tool events
+  MEASUREMENT_ADDED: 'cornerstonetoolsmeasurementadded',
+  MEASUREMENT_MODIFIED: 'cornerstonetoolsmeasurementmodified',
+  MEASUREMENT_REMOVED: 'cornerstonemeasurementremoved',
+  TOOL_DEACTIVATED: 'cornerstonetoolstooldeactivated',
+  CLIP_STOPPED: 'cornerstonetoolsclipstopped',
+  STACK_SCROLL: 'cornerstonestackscroll', // Should be renamed
+
+  LINE_SAMPLE_UPDATED: 'cornerstonelinesampleupdated'
 };
 
 export default EVENTS;

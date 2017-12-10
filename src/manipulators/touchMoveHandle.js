@@ -12,7 +12,7 @@ const runAnimation = {
 
 const touchEndEvents = [
   EVENTS.TOUCH_END,
-  EVENTS.DRAG_END,
+  EVENTS.TOUCH_DRAG_END,
   EVENTS.TOUCH_PINCH,
   EVENTS.TOUCH_PRESS,
   EVENTS.TAP

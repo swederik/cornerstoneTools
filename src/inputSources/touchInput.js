@@ -187,7 +187,7 @@ function onTouch (e) {
         // Create new tool measurement
         eventType = EVENTS.TOUCH_START_ACTIVE;
         if (e.originalEvent.touches.length > 1) {
-          eventType = 'CornerstoneToolsMultiTouchStartActive';
+          eventType = EVENTS.MULTI_TOUCH_START_ACTIVE;
         }
 
         eventData.type = eventType;
@@ -380,7 +380,7 @@ function onTouch (e) {
       canvas: external.cornerstoneMath.point.subtract(currentPoints.canvas, lastPoints.canvas)
     };
 
-    eventType = EVENTS.DRAG_END;
+    eventType = EVENTS.TOUCH_DRAG_END;
 
     eventData = {
       event: e.srcEvent,

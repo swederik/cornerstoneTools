@@ -174,7 +174,7 @@ function dragEndCallback (e) {
   const element = eventData.element;
 
   element.removeEventListener(EVENTS.TOUCH_DRAG, dragCallback);
-  element.removeEventListener(EVENTS.DRAG_END, dragEndCallback);
+  element.removeEventListener(EVENTS.TOUCH_DRAG_END, dragEndCallback);
 }
 
 function dragStartCallback (e) {
@@ -182,7 +182,7 @@ function dragStartCallback (e) {
   const element = eventData.element;
 
   element.addEventListener(EVENTS.TOUCH_DRAG, dragCallback);
-  element.addEventListener(EVENTS.DRAG_END, dragEndCallback);
+  element.addEventListener(EVENTS.TOUCH_DRAG_END, dragEndCallback);
   chooseLocation(e);
 
   return false;

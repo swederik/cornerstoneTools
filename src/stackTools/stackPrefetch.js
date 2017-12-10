@@ -289,8 +289,8 @@ function enable (element) {
 
   const promiseRemovedHandler = getPromiseRemovedHandler(element);
 
-  external.cornerstone.events.removeEventListener('cornerstoneimagecachepromiseremoved', promiseRemovedHandler);
-  external.cornerstone.events.addEventListener('cornerstoneimagecachepromiseremoved', promiseRemovedHandler);
+  external.cornerstone.events.removeEventListener(EVENTS.IMAGE_CACHE_PROMISE_REMOVED, promiseRemovedHandler);
+  external.cornerstone.events.addEventListener(EVENTS.IMAGE_CACHE_PROMISE_REMOVED, promiseRemovedHandler);
 }
 
 function disable (element) {
@@ -299,7 +299,7 @@ function disable (element) {
 
   const promiseRemovedHandler = getPromiseRemovedHandler(element);
 
-  external.cornerstone.events.removeEventListener('cornerstoneimagecachepromiseremoved', promiseRemovedHandler);
+  external.cornerstone.events.removeEventListener(EVENTS.IMAGE_CACHE_PROMISE_REMOVED, promiseRemovedHandler);
 
   const stackPrefetchData = getToolState(element, toolType);
   // If there is actually something to disable, disable it

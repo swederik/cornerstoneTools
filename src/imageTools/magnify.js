@@ -63,7 +63,7 @@ function dragEndCallback (e) {
   const eventData = e.detail;
   const element = eventData.element;
 
-  element.removeEventListener(EVENTS.DRAG_END, dragEndCallback);
+  element.removeEventListener(EVENTS.TOUCH_DRAG_END, dragEndCallback);
   element.removeEventListener(EVENTS.TOUCH_END, dragEndCallback);
   element.removeEventListener(EVENTS.NEW_IMAGE, newImageCallback);
   hideTool(eventData);
@@ -78,7 +78,7 @@ function dragCallback (e) {
 
   drawMagnificationTool(eventData);
   if (eventData.isTouchEvent === true) {
-    element.addEventListener(EVENTS.DRAG_END, dragEndCallback);
+    element.addEventListener(EVENTS.TOUCH_DRAG_END, dragEndCallback);
     element.addEventListener(EVENTS.TOUCH_END, dragEndCallback);
   }
 

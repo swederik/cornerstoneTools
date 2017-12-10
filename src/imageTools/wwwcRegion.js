@@ -334,7 +334,7 @@ function activate (element, mouseButtonMask) {
 function disableTouchDrag (element) {
   element.removeEventListener(EVENTS.TOUCH_DRAG, dragCallback);
   element.removeEventListener(EVENTS.TOUCH_START, recordStartPoint);
-  element.removeEventListener(EVENTS.DRAG_END, applyWWWCRegion);
+  element.removeEventListener(EVENTS.TOUCH_DRAG_END, applyWWWCRegion);
   element.removeEventListener(EVENTS.IMAGE_RENDERED, onImageRendered);
 }
 
@@ -349,12 +349,12 @@ function activateTouchDrag (element) {
 
   element.removeEventListener(EVENTS.TOUCH_DRAG, dragCallback);
   element.removeEventListener(EVENTS.TOUCH_START, recordStartPoint);
-  element.removeEventListener(EVENTS.DRAG_END, applyWWWCRegion);
+  element.removeEventListener(EVENTS.TOUCH_DRAG_END, applyWWWCRegion);
   element.removeEventListener(EVENTS.IMAGE_RENDERED, onImageRendered);
 
   element.addEventListener(EVENTS.TOUCH_DRAG, dragCallback);
   element.addEventListener(EVENTS.TOUCH_START, recordStartPoint);
-  element.addEventListener(EVENTS.DRAG_END, applyWWWCRegion);
+  element.addEventListener(EVENTS.TOUCH_DRAG_END, applyWWWCRegion);
   element.addEventListener(EVENTS.IMAGE_RENDERED, onImageRendered);
 }
 

@@ -1,3 +1,4 @@
+import EVENTS from '../events.js';
 import triggerEvent from '../util/triggerEvent.js';
 
 // This object manages a collection of measurements
@@ -15,7 +16,7 @@ function MeasurementManager () {
       measurement
     };
 
-    triggerEvent(that, 'CornerstoneMeasurementAdded', eventDetail);
+    triggerEvent(that, EVENTS.MEASUREMENT_ADDED, eventDetail);
   };
 
   this.remove = function (index) {
@@ -28,7 +29,7 @@ function MeasurementManager () {
       measurement
     };
 
-    triggerEvent(that, 'CornerstoneMeasurementRemoved', eventDetail);
+    triggerEvent(that, EVENTS.MEASUREMENT_REMOVED, eventDetail);
   };
 
 }
