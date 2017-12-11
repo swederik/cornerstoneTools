@@ -1,13 +1,10 @@
 import EVENTS from '../events.js';
 
 export default function (touchPinchCallback) {
-  const toolInterface = {
+  return {
     activate (element) {
       element.removeEventListener(EVENTS.TOUCH_PINCH, touchPinchCallback);
-      const eventData = {
-      };
-
-      element.addEventListener(EVENTS.TOUCH_PINCH, eventData, touchPinchCallback);
+      element.addEventListener(EVENTS.TOUCH_PINCH, touchPinchCallback);
     },
     disable (element) {
       element.removeEventListener(EVENTS.TOUCH_PINCH, touchPinchCallback);
@@ -19,7 +16,4 @@ export default function (touchPinchCallback) {
       element.removeEventListener(EVENTS.TOUCH_PINCH, touchPinchCallback);
     }
   };
-
-
-  return toolInterface;
 }

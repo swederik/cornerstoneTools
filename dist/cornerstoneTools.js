@@ -1,4 +1,4 @@
-/*! cornerstone-tools - 1.1.2 - 2017-12-10 | (c) 2017 Chris Hafey | https://github.com/cornerstonejs/cornerstoneTools */
+/*! cornerstone-tools - 1.1.2 - 2017-12-11 | (c) 2017 Chris Hafey | https://github.com/cornerstonejs/cornerstoneTools */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
@@ -138,6 +138,7 @@ var EVENTS = {
 
   // Touch events
   TOUCH_START: 'cornerstonetoolstouchstart',
+  TOUCH_START_ACTIVE: 'cornerstonetoolstouchstartactive',
   TOUCH_END: 'cornerstonetoolstouchend',
   TOUCH_DRAG: 'cornerstonetoolstouchdrag',
   TOUCH_DRAG_END: 'cornerstonetoolstouchdragend',
@@ -534,76 +535,14 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = function (mouseToolInterface) {
   var configuration = {};
 
-  // /////// BEGIN ACTIVE TOOL ///////
-  function addNewMeasurement(mouseEventData) {
-    var cornerstone = _externalModules2.default.cornerstone;
-    var element = mouseEventData.element;
-
-    var measurementData = mouseToolInterface.createNewMeasurement(mouseEventData);
-
-    if (!measurementData) {
-      return;
-    }
-
-    var eventData = {
-      mouseButtonMask: mouseEventData.which
-    };
-
-    // Associate this data with this imageId so we can render it and manipulate it
-    (0, _toolState.addToolState)(mouseEventData.element, mouseToolInterface.toolType, measurementData);
-
-    // Since we are dragging to another place to drop the end point, we can just activate
-    // The end point and let the moveHandle move it for us.
-    element.removeEventListener(_events2.default.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-    element.removeEventListener(_events2.default.MOUSE_DOWN, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-    element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
-
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
-    }
-
-    cornerstone.updateImage(element);
-
-    var handleMover = void 0;
-
-    if (Object.keys(measurementData.handles).length === 1) {
-      handleMover = _moveHandle2.default;
-    } else {
-      handleMover = _moveNewHandle2.default;
-    }
-
-    var preventHandleOutsideImage = void 0;
-
-    if (mouseToolInterface.options && mouseToolInterface.options.preventHandleOutsideImage !== undefined) {
-      preventHandleOutsideImage = mouseToolInterface.options.preventHandleOutsideImage;
-    } else {
-      preventHandleOutsideImage = false;
-    }
-
-    handleMover(mouseEventData, mouseToolInterface.toolType, measurementData, measurementData.handles.end, function () {
-      measurementData.active = false;
-      measurementData.invalidated = true;
-      if ((0, _anyHandlesOutsideImage2.default)(mouseEventData, measurementData.handles)) {
-        // Delete the measurement
-        (0, _toolState.removeToolState)(element, mouseToolInterface.toolType, measurementData);
-      }
-
-      element.addEventListener(_events2.default.MOUSE_MOVE, eventData, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-      element.addEventListener(_events2.default.MOUSE_DOWN, eventData, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-      element.addEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, eventData, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
-
-      if (mouseToolInterface.mouseDoubleClickCallback) {
-        element.addEventListener(_events2.default.MOUSE_DOUBLE_CLICK, eventData, mouseToolInterface.mouseDoubleClickCallback);
-      }
-
-      cornerstone.updateImage(element);
-    }, preventHandleOutsideImage);
-  }
+  var eventDataMap = {};
 
   function mouseDownActivateCallback(e) {
     var eventData = e.detail;
+    var element = eventData.element;
+    var mouseButtonMask = eventDataMap[element].mouseButtonMask;
 
-    if ((0, _isMouseButtonEnabled2.default)(eventData.which, e.data.mouseButtonMask)) {
+    if ((0, _isMouseButtonEnabled2.default)(eventData.which, mouseButtonMask)) {
       if (mouseToolInterface.addNewMeasurement) {
         mouseToolInterface.addNewMeasurement(eventData);
       } else {
@@ -664,6 +603,7 @@ exports.default = function (mouseToolInterface) {
     var eventData = e.detail;
     var data = void 0;
     var element = eventData.element;
+    var mouseButtonMask = eventDataMap[element].mouseButtonMask;
 
     function handleDoneMove() {
       data.invalidated = true;
@@ -673,10 +613,10 @@ exports.default = function (mouseToolInterface) {
       }
 
       _externalModules2.default.cornerstone.updateImage(element);
-      element.addEventListener(_events2.default.MOUSE_MOVE, eventData, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+      element.addEventListener(_events2.default.MOUSE_MOVE, mouseMove);
     }
 
-    if (!(0, _isMouseButtonEnabled2.default)(eventData.which, e.data.mouseButtonMask)) {
+    if (!(0, _isMouseButtonEnabled2.default)(eventData.which, mouseButtonMask)) {
       return;
     }
 
@@ -705,7 +645,7 @@ exports.default = function (mouseToolInterface) {
       var handle = (0, _getHandleNearImagePoint2.default)(element, data.handles, coords, distance);
 
       if (handle) {
-        element.removeEventListener(_events2.default.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+        element.removeEventListener(_events2.default.MOUSE_MOVE, mouseMove);
         data.active = true;
         (0, _moveHandle2.default)(eventData, mouseToolInterface.toolType, data, handle, handleDoneMove, preventHandleOutsideImage);
         e.stopImmediatePropagation();
@@ -730,7 +670,7 @@ exports.default = function (mouseToolInterface) {
       data.active = false;
       if (mouseToolInterface.pointNearTool(element, data, coords)) {
         data.active = true;
-        element.removeEventListener(_events2.default.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+        element.removeEventListener(_events2.default.MOUSE_MOVE, mouseMove);
         (0, _moveAllHandles2.default)(e, data, toolData, mouseToolInterface.toolType, options, handleDoneMove);
         e.stopImmediatePropagation();
 
@@ -741,15 +681,82 @@ exports.default = function (mouseToolInterface) {
   // /////// END DEACTIVE TOOL ///////
 
 
+  var mouseMove = mouseToolInterface.mouseMoveCallback || mouseMoveCallback;
+  var mouseDown = mouseToolInterface.mouseDownCallback || mouseDownCallback;
+  var mouseDownActivate = mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback;
+  var mouseDoubleClick = mouseToolInterface.mouseDoubleClickCallback;
+
+  // /////// BEGIN ACTIVE TOOL ///////
+  function addNewMeasurement(mouseEventData) {
+    var cornerstone = _externalModules2.default.cornerstone;
+    var element = mouseEventData.element;
+
+    var measurementData = mouseToolInterface.createNewMeasurement(mouseEventData);
+
+    if (!measurementData) {
+      return;
+    }
+
+    // Associate this data with this imageId so we can render it and manipulate it
+    (0, _toolState.addToolState)(mouseEventData.element, mouseToolInterface.toolType, measurementData);
+
+    // Since we are dragging to another place to drop the end point, we can just activate
+    // The end point and let the moveHandle move it for us.
+    element.removeEventListener(_events2.default.MOUSE_MOVE, mouseMove);
+    element.removeEventListener(_events2.default.MOUSE_DOWN, mouseDown);
+    element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
+
+    if (mouseDoubleClick) {
+      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
+    }
+
+    cornerstone.updateImage(element);
+
+    var handleMover = void 0;
+
+    if (Object.keys(measurementData.handles).length === 1) {
+      handleMover = _moveHandle2.default;
+    } else {
+      handleMover = _moveNewHandle2.default;
+    }
+
+    var preventHandleOutsideImage = void 0;
+
+    if (mouseToolInterface.options && mouseToolInterface.options.preventHandleOutsideImage !== undefined) {
+      preventHandleOutsideImage = mouseToolInterface.options.preventHandleOutsideImage;
+    } else {
+      preventHandleOutsideImage = false;
+    }
+
+    handleMover(mouseEventData, mouseToolInterface.toolType, measurementData, measurementData.handles.end, function () {
+      measurementData.active = false;
+      measurementData.invalidated = true;
+      if ((0, _anyHandlesOutsideImage2.default)(mouseEventData, measurementData.handles)) {
+        // Delete the measurement
+        (0, _toolState.removeToolState)(element, mouseToolInterface.toolType, measurementData);
+      }
+
+      element.addEventListener(_events2.default.MOUSE_MOVE, mouseMove);
+      element.addEventListener(_events2.default.MOUSE_DOWN, mouseDown);
+      element.addEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
+
+      if (mouseDoubleClick) {
+        element.addEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
+      }
+
+      cornerstone.updateImage(element);
+    }, preventHandleOutsideImage);
+  }
+
   // Not visible, not interactive
   function disable(element) {
     element.removeEventListener(_events2.default.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
-    element.removeEventListener(_events2.default.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-    element.removeEventListener(_events2.default.MOUSE_DOWN, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-    element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
+    element.removeEventListener(_events2.default.MOUSE_MOVE, mouseMove);
+    element.removeEventListener(_events2.default.MOUSE_DOWN, mouseDown);
+    element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
+    if (mouseDoubleClick) {
+      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
 
     _externalModules2.default.cornerstone.updateImage(element);
@@ -758,24 +765,17 @@ exports.default = function (mouseToolInterface) {
   // Visible but not interactive
   function enable(element) {
     element.removeEventListener(_events2.default.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
-    element.removeEventListener(_events2.default.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-    element.removeEventListener(_events2.default.MOUSE_DOWN, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-    element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
+    element.removeEventListener(_events2.default.MOUSE_MOVE, mouseMove);
+    element.removeEventListener(_events2.default.MOUSE_DOWN, mouseDown);
+    element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
+    if (mouseDoubleClick) {
+      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
 
     element.addEventListener(_events2.default.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
 
     _externalModules2.default.cornerstone.updateImage(element);
-  }
-
-  function create(callback, eventData) {
-    return function (event) {
-      event.data = eventData;
-      return callback(event);
-    };
   }
 
   // Visible, interactive and can create
@@ -784,10 +784,7 @@ exports.default = function (mouseToolInterface) {
       mouseButtonMask: mouseButtonMask
     };
 
-    var mouseMove = create(mouseToolInterface.mouseMoveCallback || mouseMoveCallback, eventData);
-    var mouseDown = create(mouseToolInterface.mouseDownCallback || mouseDownCallback, eventData);
-    var mouseDownActivate = create(mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback, eventData);
-    var mouseDoubleClick = create(mouseToolInterface.mouseDoubleClickCallback, eventData);
+    eventDataMap[element] = eventData;
 
     element.removeEventListener(_events2.default.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
     element.removeEventListener(_events2.default.MOUSE_MOVE, mouseMove);
@@ -799,7 +796,7 @@ exports.default = function (mouseToolInterface) {
     element.addEventListener(_events2.default.MOUSE_DOWN, mouseDown);
     element.addEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
+    if (mouseDoubleClick) {
       element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
       element.addEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
@@ -813,10 +810,6 @@ exports.default = function (mouseToolInterface) {
       mouseButtonMask: mouseButtonMask
     };
 
-    var mouseMove = create(mouseToolInterface.mouseMoveCallback || mouseMoveCallback, eventData);
-    var mouseDown = create(mouseToolInterface.mouseDownCallback || mouseDownCallback, eventData);
-    var mouseDownActivate = create(mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback, eventData);
-
     var eventType = _events2.default.TOOL_DEACTIVATED;
     var statusChangeEventData = {
       mouseButtonMask: mouseButtonMask,
@@ -825,6 +818,8 @@ exports.default = function (mouseToolInterface) {
     };
 
     (0, _triggerEvent2.default)(element, eventType, statusChangeEventData);
+
+    eventDataMap[element] = eventData;
 
     element.removeEventListener(_events2.default.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
     element.removeEventListener(_events2.default.MOUSE_MOVE, mouseMove);
@@ -835,9 +830,9 @@ exports.default = function (mouseToolInterface) {
     element.addEventListener(_events2.default.MOUSE_MOVE, mouseMove);
     element.addEventListener(_events2.default.MOUSE_DOWN, mouseDown);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
-      element.addEventListener(_events2.default.MOUSE_DOUBLE_CLICK, eventData, mouseToolInterface.mouseDoubleClickCallback);
+    if (mouseDoubleClick) {
+      element.removeEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
+      element.addEventListener(_events2.default.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
 
     if (mouseToolInterface.deactivate) {
@@ -872,8 +867,8 @@ exports.default = function (mouseToolInterface) {
     toolInterface.pointNearTool = mouseToolInterface.pointNearTool;
   }
 
-  if (mouseToolInterface.mouseDoubleClickCallback) {
-    toolInterface.mouseDoubleClickCallback = mouseToolInterface.mouseDoubleClickCallback;
+  if (mouseDoubleClick) {
+    toolInterface.mouseDoubleClickCallback = mouseDoubleClick;
   }
 
   if (mouseToolInterface.addNewMeasurement) {
@@ -1584,25 +1579,38 @@ Object.defineProperty(exports, "__esModule", {
 
 exports.default = function (mouseDownCallback) {
   var configuration = {};
+  var eventDataMap = {};
 
-  var toolInterface = {
+  function mouseDown(e) {
+    var eventData = e.detail;
+    var element = eventData.element;
+
+    e.data = eventDataMap[element];
+    mouseDownCallback(e);
+  }
+
+  return {
     activate: function activate(element, mouseButtonMask, options) {
-      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
-      var eventData = {
+      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDown);
+
+      eventDataMap[element] = {
         mouseButtonMask: mouseButtonMask,
         options: options
       };
 
-      element.addEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, eventData, mouseDownCallback);
+      element.addEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDown);
     },
     disable: function disable(element) {
-      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
+      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDown);
+      delete eventDataMap[element];
     },
     enable: function enable(element) {
-      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
+      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDown);
+      delete eventDataMap[element];
     },
     deactivate: function deactivate(element) {
-      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDownCallback);
+      element.removeEventListener(_events2.default.MOUSE_DOWN_ACTIVATE, mouseDown);
+      delete eventDataMap[element];
     },
     getConfiguration: function getConfiguration() {
       return configuration;
@@ -1611,8 +1619,6 @@ exports.default = function (mouseDownCallback) {
       configuration = config;
     }
   };
-
-  return toolInterface;
 };
 
 var _events = __webpack_require__(1);
@@ -4543,9 +4549,7 @@ exports.default = function (doubleTapCallback) {
   return {
     activate: function activate(element) {
       element.removeEventListener(_events2.default.DOUBLE_TAP, doubleTapCallback);
-      var eventData = {};
-
-      element.addEventListener(_events2.default.DOUBLE_TAP, eventData, doubleTapCallback);
+      element.addEventListener(_events2.default.DOUBLE_TAP, doubleTapCallback);
     },
     disable: function disable(element) {
       element.removeEventListener(_events2.default.DOUBLE_TAP, doubleTapCallback);
@@ -4845,12 +4849,10 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 exports.default = function (touchPinchCallback) {
-  var toolInterface = {
+  return {
     activate: function activate(element) {
       element.removeEventListener(_events2.default.TOUCH_PINCH, touchPinchCallback);
-      var eventData = {};
-
-      element.addEventListener(_events2.default.TOUCH_PINCH, eventData, touchPinchCallback);
+      element.addEventListener(_events2.default.TOUCH_PINCH, touchPinchCallback);
     },
     disable: function disable(element) {
       element.removeEventListener(_events2.default.TOUCH_PINCH, touchPinchCallback);
@@ -4862,8 +4864,6 @@ exports.default = function (touchPinchCallback) {
       element.removeEventListener(_events2.default.TOUCH_PINCH, touchPinchCallback);
     }
   };
-
-  return toolInterface;
 };
 
 var _events = __webpack_require__(1);
@@ -13175,9 +13175,9 @@ function mouseDownCallback(e) {
   var element = eventData.element;
 
   if ((0, _isMouseButtonEnabled2.default)(eventData.which, e.data.mouseButtonMask)) {
-    element.addEventListener(_events2.default.MOUSE_DRAG, eventData, dragCallback);
-    element.addEventListener(_events2.default.MOUSE_UP, eventData, mouseUpCallback);
-    element.addEventListener(_events2.default.MOUSE_CLICK, eventData, mouseUpCallback);
+    element.addEventListener(_events2.default.MOUSE_DRAG, dragCallback);
+    element.addEventListener(_events2.default.MOUSE_UP, mouseUpCallback);
+    element.addEventListener(_events2.default.MOUSE_CLICK, mouseUpCallback);
 
     currentPoints = eventData.currentPoints;
     element.addEventListener(_events2.default.NEW_IMAGE, newImageCallback);
@@ -16124,8 +16124,8 @@ function mouseDownCallback(e) {
   var element = eventData.element;
 
   if ((0, _isMouseButtonEnabled2.default)(eventData.which, e.data.mouseButtonMask)) {
-    element.addEventListener(_events2.default.MOUSE_DRAG, eventData, whichMovement);
-    element.addEventListener(_events2.default.MOUSE_MOVE, eventData, whichMovement);
+    element.addEventListener(_events2.default.MOUSE_DRAG, whichMovement);
+    element.addEventListener(_events2.default.MOUSE_MOVE, whichMovement);
 
     element.removeEventListener(_events2.default.MOUSE_DOWN, mouseDownCallback);
     recordStartPoint(eventData);

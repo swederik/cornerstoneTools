@@ -40,9 +40,9 @@ function mouseDownCallback (e) {
   const element = eventData.element;
 
   if (isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
-    element.addEventListener(EVENTS.MOUSE_DRAG, eventData, dragCallback);
-    element.addEventListener(EVENTS.MOUSE_UP, eventData, mouseUpCallback);
-    element.addEventListener(EVENTS.MOUSE_CLICK, eventData, mouseUpCallback);
+    element.addEventListener(EVENTS.MOUSE_DRAG, dragCallback);
+    element.addEventListener(EVENTS.MOUSE_UP, mouseUpCallback);
+    element.addEventListener(EVENTS.MOUSE_CLICK, mouseUpCallback);
 
     currentPoints = eventData.currentPoints;
     element.addEventListener(EVENTS.NEW_IMAGE, newImageCallback);

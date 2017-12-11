@@ -14,76 +14,14 @@ import triggerEvent from '../util/triggerEvent.js';
 export default function (mouseToolInterface) {
   let configuration = {};
 
-  // /////// BEGIN ACTIVE TOOL ///////
-  function addNewMeasurement (mouseEventData) {
-    const cornerstone = external.cornerstone;
-    const element = mouseEventData.element;
-
-    const measurementData = mouseToolInterface.createNewMeasurement(mouseEventData);
-
-    if (!measurementData) {
-      return;
-    }
-
-    const eventData = {
-      mouseButtonMask: mouseEventData.which
-    };
-
-    // Associate this data with this imageId so we can render it and manipulate it
-    addToolState(mouseEventData.element, mouseToolInterface.toolType, measurementData);
-
-    // Since we are dragging to another place to drop the end point, we can just activate
-    // The end point and let the moveHandle move it for us.
-    element.removeEventListener(EVENTS.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-    element.removeEventListener(EVENTS.MOUSE_DOWN, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-    element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
-
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
-    }
-
-    cornerstone.updateImage(element);
-
-    let handleMover;
-
-    if (Object.keys(measurementData.handles).length === 1) {
-      handleMover = moveHandle;
-    } else {
-      handleMover = moveNewHandle;
-    }
-
-    let preventHandleOutsideImage;
-
-    if (mouseToolInterface.options && mouseToolInterface.options.preventHandleOutsideImage !== undefined) {
-      preventHandleOutsideImage = mouseToolInterface.options.preventHandleOutsideImage;
-    } else {
-      preventHandleOutsideImage = false;
-    }
-
-    handleMover(mouseEventData, mouseToolInterface.toolType, measurementData, measurementData.handles.end, function () {
-      measurementData.active = false;
-      measurementData.invalidated = true;
-      if (anyHandlesOutsideImage(mouseEventData, measurementData.handles)) {
-        // Delete the measurement
-        removeToolState(element, mouseToolInterface.toolType, measurementData);
-      }
-
-      element.addEventListener(EVENTS.MOUSE_MOVE, eventData, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-      element.addEventListener(EVENTS.MOUSE_DOWN, eventData, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-      element.addEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, eventData, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
-
-      if (mouseToolInterface.mouseDoubleClickCallback) {
-        element.addEventListener(EVENTS.MOUSE_DOUBLE_CLICK, eventData, mouseToolInterface.mouseDoubleClickCallback);
-      }
-
-      cornerstone.updateImage(element);
-    }, preventHandleOutsideImage);
-  }
+  const eventDataMap = {};
 
   function mouseDownActivateCallback (e) {
     const eventData = e.detail;
+    const element = eventData.element;
+    const mouseButtonMask = eventDataMap[element].mouseButtonMask;
 
-    if (isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
+    if (isMouseButtonEnabled(eventData.which, mouseButtonMask)) {
       if (mouseToolInterface.addNewMeasurement) {
         mouseToolInterface.addNewMeasurement(eventData);
       } else {
@@ -144,6 +82,7 @@ export default function (mouseToolInterface) {
     const eventData = e.detail;
     let data;
     const element = eventData.element;
+    const mouseButtonMask = eventDataMap[element].mouseButtonMask;
 
     function handleDoneMove () {
       data.invalidated = true;
@@ -153,10 +92,10 @@ export default function (mouseToolInterface) {
       }
 
       external.cornerstone.updateImage(element);
-      element.addEventListener(EVENTS.MOUSE_MOVE, eventData, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+      element.addEventListener(EVENTS.MOUSE_MOVE, mouseMove);
     }
 
-    if (!isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
+    if (!isMouseButtonEnabled(eventData.which, mouseButtonMask)) {
       return;
     }
 
@@ -185,7 +124,7 @@ export default function (mouseToolInterface) {
       const handle = getHandleNearImagePoint(element, data.handles, coords, distance);
 
       if (handle) {
-        element.removeEventListener(EVENTS.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+        element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
         data.active = true;
         moveHandle(eventData, mouseToolInterface.toolType, data, handle, handleDoneMove, preventHandleOutsideImage);
         e.stopImmediatePropagation();
@@ -210,7 +149,7 @@ export default function (mouseToolInterface) {
       data.active = false;
       if (mouseToolInterface.pointNearTool(element, data, coords)) {
         data.active = true;
-        element.removeEventListener(EVENTS.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
+        element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
         moveAllHandles(e, data, toolData, mouseToolInterface.toolType, options, handleDoneMove);
         e.stopImmediatePropagation();
 
@@ -221,16 +160,83 @@ export default function (mouseToolInterface) {
   // /////// END DEACTIVE TOOL ///////
 
 
+  const mouseMove = mouseToolInterface.mouseMoveCallback || mouseMoveCallback;
+  const mouseDown = mouseToolInterface.mouseDownCallback || mouseDownCallback;
+  const mouseDownActivate = mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback;
+  const mouseDoubleClick = mouseToolInterface.mouseDoubleClickCallback;
+
+  // /////// BEGIN ACTIVE TOOL ///////
+  function addNewMeasurement (mouseEventData) {
+    const cornerstone = external.cornerstone;
+    const element = mouseEventData.element;
+
+    const measurementData = mouseToolInterface.createNewMeasurement(mouseEventData);
+
+    if (!measurementData) {
+      return;
+    }
+
+    // Associate this data with this imageId so we can render it and manipulate it
+    addToolState(mouseEventData.element, mouseToolInterface.toolType, measurementData);
+
+    // Since we are dragging to another place to drop the end point, we can just activate
+    // The end point and let the moveHandle move it for us.
+    element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
+    element.removeEventListener(EVENTS.MOUSE_DOWN, mouseDown);
+    element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
+
+    if (mouseDoubleClick) {
+      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
+    }
+
+    cornerstone.updateImage(element);
+
+    let handleMover;
+
+    if (Object.keys(measurementData.handles).length === 1) {
+      handleMover = moveHandle;
+    } else {
+      handleMover = moveNewHandle;
+    }
+
+    let preventHandleOutsideImage;
+
+    if (mouseToolInterface.options && mouseToolInterface.options.preventHandleOutsideImage !== undefined) {
+      preventHandleOutsideImage = mouseToolInterface.options.preventHandleOutsideImage;
+    } else {
+      preventHandleOutsideImage = false;
+    }
+
+    handleMover(mouseEventData, mouseToolInterface.toolType, measurementData, measurementData.handles.end, function () {
+      measurementData.active = false;
+      measurementData.invalidated = true;
+      if (anyHandlesOutsideImage(mouseEventData, measurementData.handles)) {
+        // Delete the measurement
+        removeToolState(element, mouseToolInterface.toolType, measurementData);
+      }
+
+      element.addEventListener(EVENTS.MOUSE_MOVE, mouseMove);
+      element.addEventListener(EVENTS.MOUSE_DOWN, mouseDown);
+      element.addEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
+
+      if (mouseDoubleClick) {
+        element.addEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
+      }
+
+      cornerstone.updateImage(element);
+    }, preventHandleOutsideImage);
+  }
+
 
   // Not visible, not interactive
   function disable (element) {
     element.removeEventListener(EVENTS.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
-    element.removeEventListener(EVENTS.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-    element.removeEventListener(EVENTS.MOUSE_DOWN, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-    element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
+    element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
+    element.removeEventListener(EVENTS.MOUSE_DOWN, mouseDown);
+    element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
+    if (mouseDoubleClick) {
+      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
 
     external.cornerstone.updateImage(element);
@@ -239,12 +245,12 @@ export default function (mouseToolInterface) {
   // Visible but not interactive
   function enable (element) {
     element.removeEventListener(EVENTS.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
-    element.removeEventListener(EVENTS.MOUSE_MOVE, mouseToolInterface.mouseMoveCallback || mouseMoveCallback);
-    element.removeEventListener(EVENTS.MOUSE_DOWN, mouseToolInterface.mouseDownCallback || mouseDownCallback);
-    element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback);
+    element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
+    element.removeEventListener(EVENTS.MOUSE_DOWN, mouseDown);
+    element.removeEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
+    if (mouseDoubleClick) {
+      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
 
     element.addEventListener(EVENTS.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
@@ -252,27 +258,13 @@ export default function (mouseToolInterface) {
     external.cornerstone.updateImage(element);
   }
 
-
-  function create(callback, eventData) {
-    return function(event) {
-      event.data = eventData;
-      return callback(event);
-    };
-  }
-
-
   // Visible, interactive and can create
   function activate (element, mouseButtonMask) {
     const eventData = {
       mouseButtonMask
     };
 
-    const mouseMove = create(mouseToolInterface.mouseMoveCallback || mouseMoveCallback, eventData);
-    const mouseDown = create(mouseToolInterface.mouseDownCallback || mouseDownCallback, eventData);
-    const mouseDownActivate = create(mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback, eventData);
-    const mouseDoubleClick = create(mouseToolInterface.mouseDoubleClickCallback, eventData);
-
-
+    eventDataMap[element] = eventData;
 
     element.removeEventListener(EVENTS.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
     element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
@@ -284,7 +276,7 @@ export default function (mouseToolInterface) {
     element.addEventListener(EVENTS.MOUSE_DOWN, mouseDown);
     element.addEventListener(EVENTS.MOUSE_DOWN_ACTIVATE, mouseDownActivate);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
+    if (mouseDoubleClick) {
       element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
       element.addEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
@@ -298,10 +290,6 @@ export default function (mouseToolInterface) {
       mouseButtonMask
     };
 
-    const mouseMove = create(mouseToolInterface.mouseMoveCallback || mouseMoveCallback, eventData);
-    const mouseDown = create(mouseToolInterface.mouseDownCallback || mouseDownCallback, eventData);
-    const mouseDownActivate = create(mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback, eventData);
-
     const eventType = EVENTS.TOOL_DEACTIVATED;
     const statusChangeEventData = {
       mouseButtonMask,
@@ -310,6 +298,8 @@ export default function (mouseToolInterface) {
     };
 
     triggerEvent(element, eventType, statusChangeEventData);
+
+    eventDataMap[element] = eventData;
 
     element.removeEventListener(EVENTS.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
     element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
@@ -320,9 +310,9 @@ export default function (mouseToolInterface) {
     element.addEventListener(EVENTS.MOUSE_MOVE, mouseMove);
     element.addEventListener(EVENTS.MOUSE_DOWN, mouseDown);
 
-    if (mouseToolInterface.mouseDoubleClickCallback) {
-      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseToolInterface.mouseDoubleClickCallback);
-      element.addEventListener(EVENTS.MOUSE_DOUBLE_CLICK, eventData, mouseToolInterface.mouseDoubleClickCallback);
+    if (mouseDoubleClick) {
+      element.removeEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
+      element.addEventListener(EVENTS.MOUSE_DOUBLE_CLICK, mouseDoubleClick);
     }
 
     if (mouseToolInterface.deactivate) {
@@ -352,13 +342,13 @@ export default function (mouseToolInterface) {
     mouseDownActivateCallback
   };
 
-    // Expose pointNearTool if available
+  // Expose pointNearTool if available
   if (mouseToolInterface.pointNearTool) {
     toolInterface.pointNearTool = mouseToolInterface.pointNearTool;
   }
 
-  if (mouseToolInterface.mouseDoubleClickCallback) {
-    toolInterface.mouseDoubleClickCallback = mouseToolInterface.mouseDoubleClickCallback;
+  if (mouseDoubleClick) {
+    toolInterface.mouseDoubleClickCallback = mouseDoubleClick;
   }
 
   if (mouseToolInterface.addNewMeasurement) {

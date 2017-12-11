@@ -173,8 +173,8 @@ function mouseDownCallback (e) {
   const element = eventData.element;
 
   if (isMouseButtonEnabled(eventData.which, e.data.mouseButtonMask)) {
-    element.addEventListener(EVENTS.MOUSE_DRAG, eventData, whichMovement);
-    element.addEventListener(EVENTS.MOUSE_MOVE, eventData, whichMovement);
+    element.addEventListener(EVENTS.MOUSE_DRAG, whichMovement);
+    element.addEventListener(EVENTS.MOUSE_MOVE, whichMovement);
 
     element.removeEventListener(EVENTS.MOUSE_DOWN, mouseDownCallback);
     recordStartPoint(eventData);

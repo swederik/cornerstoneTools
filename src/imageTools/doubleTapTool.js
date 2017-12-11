@@ -4,9 +4,7 @@ export default function (doubleTapCallback) {
   return {
     activate (element) {
       element.removeEventListener(EVENTS.DOUBLE_TAP, doubleTapCallback);
-      const eventData = {};
-
-      element.addEventListener(EVENTS.DOUBLE_TAP, eventData, doubleTapCallback);
+      element.addEventListener(EVENTS.DOUBLE_TAP, doubleTapCallback);
     },
     disable (element) {
       element.removeEventListener(EVENTS.DOUBLE_TAP, doubleTapCallback);
