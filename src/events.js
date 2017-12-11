@@ -17,6 +17,7 @@ const EVENTS = {
 
   // Touch events
   TOUCH_START: 'cornerstonetoolstouchstart',
+  TOUCH_START_ACTIVE: 'cornerstonetoolstouchstartactive',
   TOUCH_END: 'cornerstonetoolstouchend',
   TOUCH_DRAG: 'cornerstonetoolstouchdrag',
   TOUCH_DRAG_END: 'cornerstonetoolstouchdragend',

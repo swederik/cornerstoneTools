@@ -272,6 +272,8 @@ export default function (mouseToolInterface) {
     const mouseDownActivate = create(mouseToolInterface.mouseDownActivateCallback || mouseDownActivateCallback, eventData);
     const mouseDoubleClick = create(mouseToolInterface.mouseDoubleClickCallback, eventData);
 
+
+
     element.removeEventListener(EVENTS.IMAGE_RENDERED, mouseToolInterface.onImageRendered);
     element.removeEventListener(EVENTS.MOUSE_MOVE, mouseMove);
     element.removeEventListener(EVENTS.MOUSE_DOWN, mouseDown);
