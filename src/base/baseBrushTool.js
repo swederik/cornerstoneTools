@@ -7,6 +7,7 @@ import { getToolState, addToolState } from './../stateManagement/toolState.js';
 import mouseToolEventDispatcher from './../eventDispatchers/mouseToolEventDispatcher.js';
 // Utils
 import isToolActive from '../fancy-tools/shared/isToolActive.js';
+import {getNewContext} from "../util/drawing";
 
 const cornerstone = external.cornerstone;
 
@@ -200,28 +201,26 @@ export default class extends baseTool {
 
     cornerstone.storedPixelDataToCanvasImageDataColorLUT(image, colorLut.Table, imageData.data);
 
-    const canvasTopLeft = external.cornerstone.pixelToCanvas(eventData.element, {x: 0, y: 0});
-    const canvasBottomRight = external.cornerstone.pixelToCanvas(eventData.element, {x: eventData.image.width, y: eventData.image.height});
-    const canvasWidth = canvasBottomRight.x - canvasTopLeft.x;
-    const canvasHeight = canvasBottomRight.y - canvasTopLeft.y;
-
     window.createImageBitmap(imageData).then((newImageBitmap) => {
       this._imageBitmap = newImageBitmap;
       toolData.data[0].invalidated = false;
+
       external.cornerstone.updateImage(eventData.element);
-      //this._drawImageBitmap(evt);
     });
   }
 
   _drawImageBitmap (e) {
     const eventData = e.detail;
+    const context = getNewContext(eventData.canvasContext.canvas);
+
     const canvasTopLeft = external.cornerstone.pixelToCanvas(eventData.element, {x: 0, y: 0});
     const canvasBottomRight = external.cornerstone.pixelToCanvas(eventData.element, {x: eventData.image.width, y: eventData.image.height});
     const canvasWidth = canvasBottomRight.x - canvasTopLeft.x;
     const canvasHeight = canvasBottomRight.y - canvasTopLeft.y;
 
-    eventData.canvasContext.imageSmoothingEnabled = false;
-    eventData.canvasContext.drawImage(this._imageBitmap, canvasTopLeft.x, canvasTopLeft.y, canvasWidth, canvasHeight);
+
+    context.imageSmoothingEnabled = false;
+    context.drawImage(this._imageBitmap, canvasTopLeft.x, canvasTopLeft.y, canvasWidth, canvasHeight);
   }
 
   activeCallback (element) {
