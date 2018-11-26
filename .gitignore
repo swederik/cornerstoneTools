@@ -11,5 +11,5 @@ _book/
 ## Output
 coverage/
 docs/latest/api
-dist/
+#dist/
 junit.xml
