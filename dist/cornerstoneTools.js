@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	}
 /******/
 /******/ 	var hotApplyOnUpdate = true;
-/******/ 	var hotCurrentHash = "9b5e2834359fb6137f60"; // eslint-disable-line no-unused-vars
+/******/ 	var hotCurrentHash = "af2db4b8f98df7082e54"; // eslint-disable-line no-unused-vars
 /******/ 	var hotRequestTimeout = 10000;
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentChildModule; // eslint-disable-line no-unused-vars
@@ -8007,7 +8007,7 @@ var configuration = {
   maxImagesToPrefetch: Infinity
 };
 var resetPrefetchTimeout;
-var resetPrefetchDelay = 10;
+var resetPrefetchDelay = 50;
 
 function range(lowEnd, highEnd) {
   // Javascript version of Python's range function

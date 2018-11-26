@@ -12,7 +12,7 @@ let configuration = {
 };
 
 let resetPrefetchTimeout;
-const resetPrefetchDelay = 10;
+const resetPrefetchDelay = 50;
 
 function range(lowEnd, highEnd) {
   // Javascript version of Python's range function
