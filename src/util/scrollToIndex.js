@@ -5,6 +5,9 @@ import requestPoolManager from '../requestPool/requestPoolManager.js';
 import loadHandlerManager from '../stateManagement/loadHandlerManager.js';
 import triggerEvent from '../util/triggerEvent.js';
 
+let scrollTimeout;
+const scrollDebounceDelay = 50;
+
 /**
  * Scrolls through the stack to the image index requested.
  * @export @public @method
@@ -114,17 +117,29 @@ export default function(element, newImageIdIndex) {
   // Convert the preventCache value in stack data to a boolean
   const preventCache = Boolean(stackData.preventCache);
 
-  let imagePromise;
+  const imageLoadObject = cornerstone.imageCache.getImageLoadObject(newImageId);
 
-  if (preventCache) {
-    imagePromise = cornerstone.loadImage(newImageId);
+  if (imageLoadObject && imageLoadObject.promise) {
+    imageLoadObject.promise.then(doneCallback, failCallback);
   } else {
-    imagePromise = cornerstone.loadAndCacheImage(newImageId);
-  }
+    const addToBeginning = true;
 
-  imagePromise.then(doneCallback, failCallback);
-  // Make sure we kick off any changed download request pools
-  requestPoolManager.startGrabbing();
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(function() {
+      requestPoolManager.addRequest(
+        element,
+        newImageId,
+        'interaction',
+        preventCache,
+        doneCallback,
+        failCallback,
+        addToBeginning
+      );
+
+      // Make sure we kick off any changed download request pools
+      requestPoolManager.startGrabbing();
+    }, scrollDebounceDelay);
+  }
 
   triggerEvent(element, EVENTS.STACK_SCROLL, eventData);
 }

@@ -20,7 +20,7 @@ let maxNumRequests = {
 };
 
 let awake = false;
-const grabDelay = 20;
+const grabDelay = 5;
 
 function addRequest(
   element,
